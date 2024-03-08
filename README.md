@@ -31,3 +31,16 @@ python -m pip install .
 # OR
 python -m pip install -e .
 ```
+
+Required packages were added to `environment.yml` and `requirements.txt` files with these commands:
+
+```bash
+conda env export --from-history | findstr /v "^prefix" > environment.yml
+pip list --format=freeze > requirements.txt
+```
+
+The `findstr` function is a Windows equivalent for `grep`, so on Linux use this instead:
+
+```bash
+conda env export --from-history | grep -v "^prefix" > environment.yml
+```
