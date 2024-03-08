@@ -10,13 +10,14 @@ from torchvision.io import read_image
 # Dataset class for DAGM 2007 dataset
 class DAGMDataset(Dataset):
     def __init__(self, img_dir: str, transform=None, target_transform=None, class_index: int = None):
-        self.class_name = class_index
+        self.classes: list[int] = list(range(1, 11)) if not class_index else [class_index]
         self.img_dir = img_dir
         self.image_paths: list[str] = []
-        for i in range(1, 11) if not class_index else [class_index]:
-            self.image_paths.extend(sorted(glob.glob(os.path.join(img_dir, f"Class{i}", "Train", "*.png"))))
+        for cls in self.classes:
+            self.image_paths.extend(sorted(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png"))))
 
-        label_paths = sorted(glob.glob(os.path.join(img_dir, f"Class*", "Train", "Label", "*_label.png")))
+        label_paths = sorted(glob.glob(os.path.join(
+            img_dir, f"Class{"*" if not class_index else str(class_index)}", "Train", "Label", "*_label.png")))
         self.label_paths: dict[str, str] = dict(
             [(dagm_get_label_key(label_path), label_path) for label_path in label_paths]
         )
