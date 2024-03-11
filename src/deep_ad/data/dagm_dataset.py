@@ -7,6 +7,15 @@ import torch
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 
+from src.deep_ad.data.dagm_utils import (
+    dagm_get_class,
+    dagm_get_image_name,
+    dagm_get_label_name,
+    dagm_get_image_key,
+    dagm_get_label_key,
+    dagm_get_image_path,
+)
+
 DAGM_dataset_type = Literal["Original", "Defect-free", "Defect-only"]
 
 
@@ -84,36 +93,3 @@ class DAGMDataset(Dataset):
 
     def get_index_of_image(self, cls: int, image_name: str) -> int:
         return self.image_paths.index(dagm_get_image_path(self.img_dir, cls, image_name))
-
-
-# TODO - move these functions to a separate file, dagm.py
-
-
-# Returns class number from path
-def dagm_get_class(path: str) -> str:
-    return re.search(r"Class(\d+)", path).group(1)
-
-
-# Returns image name from path
-def dagm_get_image_name(path: str) -> str:
-    return os.path.splitext(os.path.basename(path))[0]
-
-
-# Returns label name from path
-def dagm_get_label_name(path: str) -> str:
-    return os.path.splitext(os.path.basename(path))[0].strip("_label")
-
-
-# Returns image key from path in format <class>_<image_name>
-def dagm_get_image_key(path: str) -> str:
-    return dagm_get_class(path) + "_" + dagm_get_image_name(path)
-
-
-# Returns label key from path in format <class>_<label_name>
-def dagm_get_label_key(path: str) -> str:
-    return dagm_get_class(path) + "_" + dagm_get_label_name(path)
-
-
-# Returns image path from class and image name (which consists of 4 digits, e.g. 0587, 1183)
-def dagm_get_image_path(dir: str, cls: int, image_name: str) -> str:
-    return os.path.join(dir, f"Class{cls}", "Train", f"{image_name}.PNG")
