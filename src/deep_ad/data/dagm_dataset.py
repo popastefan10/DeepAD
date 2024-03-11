@@ -49,7 +49,7 @@ class DAGMDataset(Dataset):
             image_paths = list(set(label_images_paths))
 
         # Sort paths by class and image name
-        sort_fn: Callable[[str], tuple[str, str]] = lambda path: (dagm_get_class(path), dagm_get_image_name(path))
+        sort_fn: Callable[[str], tuple[int, str]] = lambda path: (int(dagm_get_class(path)), dagm_get_image_name(path))
         image_paths.sort(key=sort_fn)
         label_paths.sort(key=sort_fn)
 
