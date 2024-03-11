@@ -9,15 +9,16 @@ from torchvision.io import read_image
 
 # Dataset class for DAGM 2007 dataset
 class DAGMDataset(Dataset):
-    def __init__(self, img_dir: str, transform=None, target_transform=None, class_index: int = None):
-        self.classes: list[int] = list(range(1, 11)) if not class_index else [class_index]
+    def __init__(self, img_dir: str, transform=None, target_transform=None, classes: list[int] = None):
+        self.classes: list[int] = list(range(1, 11)) if not classes else [*classes]
         self.img_dir = img_dir
         self.image_paths: list[str] = []
         for cls in self.classes:
             self.image_paths.extend(sorted(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png"))))
 
-        label_paths = sorted(glob.glob(os.path.join(
-            img_dir, f"Class{"*" if not class_index else str(class_index)}", "Train", "Label", "*_label.png")))
+        label_paths: list[str] = []
+        for cls in self.classes:
+            label_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "Label", "*_label.png")))
         self.label_paths: dict[str, str] = dict(
             [(dagm_get_label_key(label_path), label_path) for label_path in label_paths]
         )
@@ -39,6 +40,9 @@ class DAGMDataset(Dataset):
             label = self.target_transform(label)
 
         return image, label
+
+    def get_index_of_image(self, cls: int, image_name: str) -> int:
+        return self.image_paths.index(os.path.join(self.img_dir, f"Class{cls}", "Train", f"{image_name}.PNG"))
 
 
 # Returns class number from path
