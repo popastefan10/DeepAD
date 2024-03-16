@@ -82,9 +82,13 @@ class DAGMDataset(Dataset):
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         image_path = self.image_paths[idx]
-        image = read_image(image_path)
+        image = read_image(image_path).squeeze()
         label_key = dagm_get_image_key(image_path)
-        label = read_image(self.label_paths[label_key]) if label_key in self.label_paths else torch.zeros(image.shape)
+        label = (
+            read_image(self.label_paths[label_key]).squeeze()
+            if label_key in self.label_paths
+            else torch.zeros(image.shape)
+        )
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
@@ -96,6 +100,11 @@ class DAGMDataset(Dataset):
         return self.image_paths.index(dagm_get_image_path(self.img_dir, cls, image_name))
 
 
+# Choose DAGMDataset constructor
+def use_dagm() -> type[DAGMDataset]:
+    return DAGMDataset
+
+
 # Dev dataset returns the class of the image as well
 class DAGMDatasetDev(DAGMDataset):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str]:
@@ -103,3 +112,8 @@ class DAGMDatasetDev(DAGMDataset):
         image, label = super().__getitem__(idx)
 
         return image, label, cls
+
+
+# Choose DAGMDatasetDev constructor
+def use_dagm_dev() -> type[DAGMDatasetDev]:
+    return DAGMDatasetDev

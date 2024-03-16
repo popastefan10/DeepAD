@@ -16,8 +16,14 @@ def show_image(title: str, image: np.ndarray):
 
 
 # https://mpl-interactions.readthedocs.io/en/stable/examples/zoom-factory.html
-# Plots three RGB images side by side: the original image, the label, and the original image with the label boundary
+# Plots three images side by side: the original image, the label, and the original image with the label boundary
+# The image and label must be RGB or gray
 def show_image_with_label(image: np.ndarray, label: np.ndarray, title: str = "Image with label") -> None:
+    if image.shape[-1] != 3:
+        image = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
+    if label.shape[-1] != 3:
+        label = cv.cvtColor(label, cv.COLOR_GRAY2RGB)
+
     label_dilated = cv.dilate(label, np.ones((3, 3), np.uint8), iterations=1)
     out_boundary = np.add(label_dilated, -label)
     out_boundary = cv.cvtColor(out_boundary, cv.COLOR_RGB2GRAY)
