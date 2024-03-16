@@ -1,11 +1,10 @@
 import glob
 import os
-import re
-from typing import Callable, Literal
 import torch
 
 from torch.utils.data import Dataset
 from torchvision.io import read_image
+from typing import Callable, Literal
 
 from src.deep_ad.data.dagm_utils import (
     dagm_get_class,
@@ -21,7 +20,9 @@ DAGM_dataset_type = Literal["Original", "Defect-free", "Defect-only"]
 
 # Dataset class for DAGM 2007 dataset
 class DAGMDataset(Dataset):
-    # Returns image and label paths for given classes and type
+    all_classes: list[int] = list(range(1, 11))
+
+    # Returns all image and label paths for given classes and type
     @staticmethod
     def __get_images_and_labels_paths(
         img_dir: str, classes: list[int], type: DAGM_dataset_type
@@ -63,7 +64,7 @@ class DAGMDataset(Dataset):
         classes: list[int] = None,
         type: DAGM_dataset_type = "Original",
     ):
-        self.classes: list[int] = list(range(1, 11)) if not classes else [*classes]
+        self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
         self.img_dir = img_dir
         self.type = type
 
@@ -93,3 +94,12 @@ class DAGMDataset(Dataset):
 
     def get_index_of_image(self, cls: int, image_name: str) -> int:
         return self.image_paths.index(dagm_get_image_path(self.img_dir, cls, image_name))
+
+
+# Dev dataset returns the class of the image as well
+class DAGMDatasetDev(DAGMDataset):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str]:
+        cls = dagm_get_class(self.image_paths[idx])
+        image, label = super().__getitem__(idx)
+
+        return image, label, cls

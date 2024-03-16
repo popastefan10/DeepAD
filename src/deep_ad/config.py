@@ -1,5 +1,7 @@
 import os
 
+from torch import Generator
+
 
 class Config:
     def __init__(self) -> None:
@@ -13,8 +15,6 @@ class Config:
         self.MVTecAD_dir = os.path.join(self.datasets_dir, "MVTecAD")
         self.Severstal_dir = os.path.join(self.datasets_dir, "Severstal")
 
-def hello():
-    print('hello from config.py..')
-
-
-__all__ = ['Config', 'Test', 'hello']
+        # PyTorch
+        self.seed: int = 42
+        self.generator = Generator().manual_seed(self.seed)
