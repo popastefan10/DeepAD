@@ -1,19 +1,17 @@
 import os
 
+from dotenv import dotenv_values
 from torch import Generator
 
 
 class Config:
-    def __init__(self) -> None:
-        self.root_dir = "."
+    def __init__(self, env_path: str | None = None) -> None:
+        # Paths
+        env = dotenv_values(env_path)
+        self.datasets_dir = env["datasets_dir"]
+        self.DAGM_dir = os.path.join(self.datasets_dir, "DAGM")
 
         # Datasets
-        self.datasets_dir = "C:\\Stefan\\Facultate\\Licenta\\Datasets"
-        self.DAGM_dir = os.path.join(self.datasets_dir, "DAGM")
-        self.KSDD_dir = os.path.join(self.datasets_dir, "KSDD")
-        self.KSDD2_dir = os.path.join(self.datasets_dir, "KSDD2")
-        self.MVTecAD_dir = os.path.join(self.datasets_dir, "MVTecAD")
-        self.Severstal_dir = os.path.join(self.datasets_dir, "Severstal")
         self.dagm_lengths = [0.8, 0.1, 0.1]
 
         # PyTorch

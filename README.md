@@ -44,3 +44,12 @@ The `findstr` function is a Windows equivalent for `grep`, so on Linux use this 
 ```bash
 conda env export --from-history | grep -v "^prefix" > environment.yml
 ```
+
+### Environment file
+
+Paths are configured based on local absolute paths, so you will have to add the following in a `.env` file:
+
+```py
+# In this directory you should have at least the raw DAGM dataset
+datasets_dir="C:\\path-to-datasets-directory"
+```
