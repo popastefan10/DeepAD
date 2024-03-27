@@ -15,7 +15,7 @@ DS = TypeVar("DS", DAGMDataset, DAGMDatasetDev)
 def dagm_get_datasets(config: Config, constructor: type[DS]) -> tuple[DS, DS, DS]:
     # Create a dataset for each class
     class_datasets = [
-        constructor(img_dir=config.DAGM_dir, classes=[cls], type="Defect-free") for cls in DAGMDataset.all_classes
+        constructor(img_dir=config.DAGM_raw_dir, classes=[cls], type="Defect-free") for cls in DAGMDataset.all_classes
     ]
 
     # Split the datasets into training, validation, and test sets

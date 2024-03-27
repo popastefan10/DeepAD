@@ -105,13 +105,14 @@ def use_dagm() -> type[DAGMDataset]:
     return DAGMDataset
 
 
-# Dev dataset returns the class of the image as well
+# Dev dataset returns the class and name of the image as well
 class DAGMDatasetDev(DAGMDataset):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str]:
         cls = dagm_get_class(self.image_paths[idx])
+        name = dagm_get_image_name(self.image_paths[idx])
         image, label = super().__getitem__(idx)
 
-        return image, label, cls
+        return image, label, cls, name
 
 
 # Choose DAGMDatasetDev constructor
