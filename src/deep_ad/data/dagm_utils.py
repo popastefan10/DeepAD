@@ -1,6 +1,8 @@
 import os
 import re
 
+from src.deep_ad.config import Config
+
 
 # Returns class number from path
 def dagm_get_class(path: str) -> str:
@@ -30,3 +32,8 @@ def dagm_get_label_key(path: str) -> str:
 # Returns image path from class and image name (which consists of 4 digits, e.g. 0587, 1183)
 def dagm_get_image_path(dir: str, cls: int, image_name: str) -> str:
     return os.path.join(dir, f"Class{cls}", "Train", f"{image_name}.PNG")
+
+
+# Returns patches directory path based on ppi and patch size
+def dagm_get_patches_dir(config: Config, ppi: int, patch_size: int) -> str:
+    return os.path.join(config.DAGM_processed_dir, f"{ppi}ppi_{patch_size}px")

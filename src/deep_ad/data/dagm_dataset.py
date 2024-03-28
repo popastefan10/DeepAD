@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from torchvision.io import read_image
 from typing import Callable, Literal
 
+from src.deep_ad.config import Config
 from src.deep_ad.data.dagm_utils import (
     dagm_get_class,
     dagm_get_image_name,
@@ -13,6 +14,7 @@ from src.deep_ad.data.dagm_utils import (
     dagm_get_image_key,
     dagm_get_label_key,
     dagm_get_image_path,
+    dagm_get_patches_dir,
 )
 
 DAGM_dataset_type = Literal["Original", "Defect-free", "Defect-only"]
@@ -118,3 +120,37 @@ class DAGMDatasetDev(DAGMDataset):
 # Choose DAGMDatasetDev constructor
 def use_dagm_dev() -> type[DAGMDatasetDev]:
     return DAGMDatasetDev
+
+
+# Dataset class for patches obtained from DAGM 2007 dataset
+class DAGMPatchDataset:
+    def __init__(
+        self,
+        img_dir: str,
+        transform=None,
+        target_transform=None,
+        classes: list[int] = None,
+    ) -> None:
+        self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
+        self.img_dir = img_dir
+        self.transform = transform
+        self.target_transform = target_transform
+
+        self.patch_paths: list[str] = []
+        for cls in self.classes:
+            self.patch_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png")))
+
+    def __len__(self) -> int:
+        return len(self.patch_paths)
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
+        patch_path = self.patch_paths[idx]
+        image = read_image(patch_path).squeeze()
+        cls = int(dagm_get_class(patch_path))
+
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            cls = self.target_transform(cls)
+
+        return image, cls
