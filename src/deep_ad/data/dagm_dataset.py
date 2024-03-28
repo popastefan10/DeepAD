@@ -6,7 +6,6 @@ from torch.utils.data import Dataset
 from torchvision.io import read_image
 from typing import Callable, Literal
 
-from src.deep_ad.config import Config
 from src.deep_ad.data.dagm_utils import (
     dagm_get_class,
     dagm_get_image_name,
@@ -14,6 +13,7 @@ from src.deep_ad.data.dagm_utils import (
     dagm_get_image_key,
     dagm_get_label_key,
     dagm_get_image_path,
+    dagm_get_patch_key,
 )
 
 DAGM_dataset_type = Literal["Original", "Defect-free", "Defect-only"]
@@ -142,14 +142,14 @@ class DAGMPatchDataset:
     def __len__(self) -> int:
         return len(self.patch_paths)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, str]:
         patch_path = self.patch_paths[idx]
         image = read_image(patch_path).squeeze()
-        cls = dagm_get_class(patch_path)
+        key = dagm_get_patch_key(patch_path)
 
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
-            cls = self.target_transform(cls)
+            key = self.target_transform(key)
 
-        return image, cls
+        return image, key

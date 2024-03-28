@@ -29,6 +29,11 @@ def dagm_get_label_key(path: str) -> str:
     return str(dagm_get_class(path)) + "_" + dagm_get_label_name(path)
 
 
+# Returns patch key from path in format <class>_<image_name>_<patch_id>
+def dagm_get_patch_key(path: str) -> str:
+    return str(dagm_get_class(path)) + "_" + "_".join(os.path.basename(path).split("_")[:2])
+
+
 # Returns image path from class and image name (which consists of 4 digits, e.g. 0587, 1183)
 def dagm_get_image_path(dir: str, cls: int, image_name: str) -> str:
     return os.path.join(dir, f"Class{cls}", "Train", f"{image_name}.PNG")
