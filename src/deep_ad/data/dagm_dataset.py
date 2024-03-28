@@ -14,7 +14,6 @@ from src.deep_ad.data.dagm_utils import (
     dagm_get_image_key,
     dagm_get_label_key,
     dagm_get_image_path,
-    dagm_get_patches_dir,
 )
 
 DAGM_dataset_type = Literal["Original", "Defect-free", "Defect-only"]
@@ -52,7 +51,7 @@ class DAGMDataset(Dataset):
             image_paths = list(set(label_images_paths))
 
         # Sort paths by class and image name
-        sort_fn: Callable[[str], tuple[int, str]] = lambda path: (int(dagm_get_class(path)), dagm_get_image_name(path))
+        sort_fn: Callable[[str], tuple[int, str]] = lambda path: (dagm_get_class(path), dagm_get_image_name(path))
         image_paths.sort(key=sort_fn)
         label_paths.sort(key=sort_fn)
 
@@ -63,7 +62,7 @@ class DAGMDataset(Dataset):
         img_dir: str,
         transform=None,
         target_transform=None,
-        classes: list[int] = None,
+        classes: list[int] | None = None,
         type: DAGM_dataset_type = "Original",
     ):
         self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
@@ -109,7 +108,7 @@ def use_dagm() -> type[DAGMDataset]:
 
 # Dev dataset returns the class and name of the image as well
 class DAGMDatasetDev(DAGMDataset):
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, int, str]:
         cls = dagm_get_class(self.image_paths[idx])
         name = dagm_get_image_name(self.image_paths[idx])
         image, label = super().__getitem__(idx)
@@ -129,7 +128,7 @@ class DAGMPatchDataset:
         img_dir: str,
         transform=None,
         target_transform=None,
-        classes: list[int] = None,
+        classes: list[int] | None = None,
     ) -> None:
         self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
         self.img_dir = img_dir
@@ -146,7 +145,7 @@ class DAGMPatchDataset:
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         patch_path = self.patch_paths[idx]
         image = read_image(patch_path).squeeze()
-        cls = int(dagm_get_class(patch_path))
+        cls = dagm_get_class(patch_path)
 
         if self.transform:
             image = self.transform(image)

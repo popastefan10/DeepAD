@@ -1,4 +1,5 @@
-data/processed/DAGM
+.vscode/
+data/processed/DAGM/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
