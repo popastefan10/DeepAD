@@ -38,7 +38,7 @@ def dagm_get_splits(config: Config, constructor: type[DS]) -> tuple[DS, DS, DS]:
 # Images from each class are split as follows: 80% train, 10% val, 10% test
 def dagm_patch_get_splits(config: Config) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
     # Create a dataset for each class
-    patches_dir = dagm_get_patches_dir(config, ppi=config.patches_per_image, patch_size=config.raw_patch_size)
+    patches_dir = dagm_get_patches_dir(config, ppi=config.ppi, patch_size=config.raw_patch_size)
     class_datasets = [DAGMPatchDataset(img_dir=patches_dir, classes=[cls]) for cls in DAGMDataset.all_classes]
 
     # Split the datasets into training, validation, and test sets

@@ -16,7 +16,7 @@ class Config:
         # Datasets
         self.dagm_lengths = [0.8, 0.1, 0.1] # Train, Val, Test
         self.raw_patch_size = 160           # Patches larger than 128 need to be cropped to avoid border effects when applying random transforms
-        self.patches_per_image = 4          # Number of patches to extract from each image
+        self.ppi = 4                        # Patches per image - Number of patches to extract from each image
         self.patches_iou_threshold = 0      # Maximum IOU between patches to consider them different
 
         # PyTorch
