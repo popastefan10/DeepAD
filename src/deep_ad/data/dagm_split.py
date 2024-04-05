@@ -1,3 +1,7 @@
+import glob
+import os
+
+from sklearn.model_selection import train_test_split
 from torch.utils.data import ConcatDataset, random_split
 from typing import TypeVar
 
@@ -33,23 +37,37 @@ def dagm_get_splits(config: Config, constructor: type[DS]) -> tuple[DS, DS, DS]:
     return train_dataset, val_dataset, test_dataset
 
 
-# Returns train, val and test datasets for DAGM patches dataset
-# The datasets contain patches obtained from defect-free images
-# Images from each class are split as follows: 80% train, 10% val, 10% test
 def dagm_patch_get_splits(config: Config) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
-    # Create a dataset for each class
+    """
+    Splits the patches into train, val and test datasets. \\
+    Uses `train_test_split` from `sklearn.model_selection` to split the patches. \\
+    Train dataset will be obtained first, by splitting according to the first ratio from `config.dagm_lengths`. \\
+    Then, the val and test datasets will be obtained by splitting the remaining paths according to the second ratio.
+    """
+    # First, get all the paths and classes
     patches_dir = dagm_get_patches_dir(config, ppi=config.ppi, patch_size=config.raw_patch_size)
-    class_datasets = [DAGMPatchDataset(img_dir=patches_dir, classes=[cls]) for cls in DAGMDataset.all_classes]
+    patches_cls_paths = [glob.glob(os.path.join(patches_dir, f"Class{cls}\\Train\\*.png")) for cls in range(1, 11)]
+    patches_paths: list[str] = []
+    classes: list[int] = []
+    for cls, cls_paths in enumerate(patches_cls_paths):
+        patches_paths += cls_paths
+        classes += [cls + 1] * len(cls_paths)
 
-    # Split the datasets into training, validation, and test sets
-    split_datasets = [
-        random_split(ds, lengths=config.dagm_lengths, generator=config.generator) for ds in class_datasets
-    ]
+    # Split the paths and classes
+    train_split, val_split, test_split = config.dagm_lengths
+    train_paths, test_paths, train_classes, test_classes = train_test_split(
+        patches_paths, classes, test_size=1 - train_split, random_state=config.seed, stratify=classes
+    )
+    val_paths, test_paths, val_classes, test_classes = train_test_split(
+        test_paths,
+        test_classes,
+        test_size=val_split / (1 - train_split),
+        random_state=config.seed,
+        stratify=test_classes,
+    )
 
-    # Concatenate class datasets
-    split_datasets = list(zip(*split_datasets))
-    train_dataset = ConcatDataset(split_datasets[0])
-    val_dataset = ConcatDataset(split_datasets[1])
-    test_dataset = ConcatDataset(split_datasets[2])
+    train_dataset = DAGMPatchDataset(patch_paths=train_paths, patch_classes=train_classes)
+    val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes)
+    test_dataset = DAGMPatchDataset(patch_paths=test_paths, patch_classes=test_classes)
 
     return train_dataset, val_dataset, test_dataset

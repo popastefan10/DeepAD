@@ -125,19 +125,37 @@ def use_dagm_dev() -> type[DAGMDatasetDev]:
 class DAGMPatchDataset:
     def __init__(
         self,
-        img_dir: str,
+        img_dir: str | None = None,
+        classes: list[int] | None = None,
+        patch_paths: list[str] | None = None,
+        patch_classes: list[int] | None = None,
         transform=None,
         target_transform=None,
-        classes: list[int] | None = None,
     ) -> None:
-        self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
-        self.img_dir = img_dir
+        """
+        If you want to use the patches from the whole dataset (all classes), provide img_dir. \\
+        If you want to use the patches from specific classes, provide img_dir and classes as a list of integers. \\
+        If you want to use specific patches, as in train, val and test datasets, provide patch_paths and patch_classes.
+        """
+        if not img_dir and not patch_paths:
+            raise ValueError("Either img_dir or patch_paths must be provided")
+        if img_dir and patch_paths:
+            raise ValueError("Only one of img_dir or patch_paths must be provided")
+        if patch_paths and not patch_classes:
+            raise ValueError("patch_classes must be provided if patch_paths are provided")
+
+        if patch_paths:
+            self.patch_paths = patch_paths
+            self.patch_classes: list[int] = patch_classes
+        else:
+            self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
+            self.img_dir = img_dir
+            self.patch_paths: list[str] = []
+            for cls in self.classes:
+                self.patch_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png")))
+
         self.transform = transform
         self.target_transform = target_transform
-
-        self.patch_paths: list[str] = []
-        for cls in self.classes:
-            self.patch_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png")))
 
     def __len__(self) -> int:
         return len(self.patch_paths)
