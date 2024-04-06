@@ -3,6 +3,7 @@ import os
 
 from sklearn.model_selection import train_test_split
 from torch.utils.data import ConcatDataset, random_split
+from torchvision.transforms.v2._transform import Transform
 from typing import TypeVar
 
 from src.deep_ad.config import Config
@@ -37,7 +38,9 @@ def dagm_get_splits(config: Config, constructor: type[DS]) -> tuple[DS, DS, DS]:
     return train_dataset, val_dataset, test_dataset
 
 
-def dagm_patch_get_splits(config: Config) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
+def dagm_patch_get_splits(
+    config: Config, transform: Transform | None = None, target_transform: Transform | None = None
+) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
     """
     Splits the patches into train, val and test datasets. \\
     Uses `train_test_split` from `sklearn.model_selection` to split the patches. \\
@@ -66,7 +69,10 @@ def dagm_patch_get_splits(config: Config) -> tuple[DAGMPatchDataset, DAGMPatchDa
         stratify=test_classes,
     )
 
-    train_dataset = DAGMPatchDataset(patch_paths=train_paths, patch_classes=train_classes)
+    # Use transforms for training only
+    train_dataset = DAGMPatchDataset(
+        patch_paths=train_paths, patch_classes=train_classes, transform=transform, target_transform=target_transform
+    )
     val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes)
     test_dataset = DAGMPatchDataset(patch_paths=test_paths, patch_classes=test_classes)
 

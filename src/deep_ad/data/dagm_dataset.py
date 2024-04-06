@@ -162,7 +162,7 @@ class DAGMPatchDataset:
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, str]:
         patch_path = self.patch_paths[idx]
-        image = read_image(patch_path).squeeze()
+        image = read_image(patch_path)
         key = dagm_get_patch_key(patch_path)
 
         if self.transform:

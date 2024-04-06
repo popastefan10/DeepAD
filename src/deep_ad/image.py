@@ -19,6 +19,23 @@ def show_image(title: str, image: np.ndarray):
     cv.destroyAllWindows()
 
 
+def plot_images(
+    images: list[np.ndarray], titles: list[str], rows: int = 1, cols: int = 1, figsize: tuple[int, int] = (5, 5)
+) -> None:
+    """
+    Plots a list of images with their respective titles in a grid layout.
+    Images must be in a grayscale (shape HxW) or RGB (shape HxWx3) format.
+    """
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
+    axes = axes.flatten()
+    for ax, image, title in zip(axes, images, titles):
+        ax.imshow(image, cmap="gray", vmin=0, vmax=255) if len(image.shape) == 2 else ax.imshow(image)
+        ax.set_title(title)
+        ax.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+
 # https://mpl-interactions.readthedocs.io/en/stable/examples/zoom-factory.html
 # Plots three images side by side: the original image, the label, and the original image with the label boundary
 # The image and label must be RGB or gray
