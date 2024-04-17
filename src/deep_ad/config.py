@@ -1,4 +1,5 @@
 import os
+import torch
 
 from dotenv import dotenv_values
 from torch import Generator
@@ -18,6 +19,7 @@ class Config:
         self.raw_patch_size = (
             176  # Patches larger than 128 need to be cropped to avoid border effects when applying random transforms
         )
+        self.patch_size = 128  # Patch size specified in the paper
         self.ppi = 4  # Patches per image - Number of patches to extract from each image
         self.patches_iou_threshold = 0.05  # Maximum IOU between patches to consider them different
 
@@ -25,3 +27,4 @@ class Config:
         self.seed: int = 42
         self.generator = Generator().manual_seed(self.seed)
         self.batch_size: int = 32
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
