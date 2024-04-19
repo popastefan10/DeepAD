@@ -29,7 +29,8 @@ def plot_images(
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
     axes = axes.flatten()
     for ax, image, title in zip(axes, images, titles):
-        ax.imshow(image, cmap="gray", vmin=0, vmax=255) if len(image.shape) == 2 else ax.imshow(image)
+        vmin, vmax = (0, 1) if np.max(image) - np.min(image) > 0.1 else (np.min(image), np.max(image))
+        ax.imshow(image, cmap="gray", vmin=vmin, vmax=vmax) if len(image.shape) == 2 else ax.imshow(image)
         ax.set_title(title)
         ax.axis("off")
     plt.tight_layout()

@@ -4,7 +4,7 @@ A PyTorch implementation of "Anomaly Detection using Deep Learning based Image C
 
 ## Run locally
 
-First step is to install the dependencies. On my machine I have used a conda environment, but the project can be run 
+First step is to install the dependencies. On my machine I have used a conda environment, but the project can be run
 with venv or without any environment at all.
 
 ```bash

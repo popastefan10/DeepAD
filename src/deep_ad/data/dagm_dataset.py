@@ -2,6 +2,7 @@ import glob
 import os
 import torch
 
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 from torchvision.transforms import v2
@@ -165,7 +166,7 @@ class DAGMPatchDataset:
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, str]:
         patch_path = self.patch_paths[idx]
-        image = read_image(patch_path)
+        image = Image.open(patch_path)
         key = dagm_get_patch_key(patch_path)
 
         if self.transform:
@@ -183,5 +184,7 @@ def get_transform(config: Config) -> Transform:
             v2.RandomHorizontalFlip(p=0.5),
             v2.RandomVerticalFlip(p=0.5),
             v2.CenterCrop(config.patch_size),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True)
         ]
     )
