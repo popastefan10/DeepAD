@@ -39,7 +39,7 @@ def dagm_get_splits(config: Config, constructor: type[DS]) -> tuple[DS, DS, DS]:
 
 
 def dagm_patch_get_splits(
-    config: Config, transform: Transform | None = None, target_transform: Transform | None = None
+    config: Config, train_transform: Transform | None = None, val_transform: Transform | None = None
 ) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
     """
     Splits the patches into train, val and test datasets. \\
@@ -71,9 +71,11 @@ def dagm_patch_get_splits(
 
     # Use transforms for training only
     train_dataset = DAGMPatchDataset(
-        patch_paths=train_paths, patch_classes=train_classes, transform=transform, target_transform=target_transform
+        patch_paths=train_paths,
+        patch_classes=train_classes,
+        transform=train_transform,
     )
-    val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes)
+    val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes, transform=val_transform)
     test_dataset = DAGMPatchDataset(patch_paths=test_paths, patch_classes=test_classes)
 
     return train_dataset, val_dataset, test_dataset

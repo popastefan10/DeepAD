@@ -1,7 +1,6 @@
 import torch
 
 from torch import nn
-from typing import Callable
 
 
 class DeepCNN(nn.Module):
@@ -68,27 +67,3 @@ class DeepCNN(nn.Module):
         # out = torch.nn.functional.sigmoid(out)
 
         return out
-
-
-def define_loss_function(
-    Lambda: float, mask: torch.Tensor, N: float
-) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
-    """
-    Define the loss function for the model.
-
-    Args:
-        `Lambda` - The weight of the center patch.
-        `mask` - Binary mask corresponding to the center patch (1 - center, 0 - surrounding pixels).
-        `N` - Normalization factor. Defined in the paper as the number of pixels in the image.
-    """
-
-    def loss_function(output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        diff = output - target
-        loss = (
-            Lambda * torch.linalg.norm(mask * diff, ord=1, dim=(-2, -1)) / N
-            + (1 - Lambda) * torch.linalg.norm((1 - mask) * diff, dim=(-2, -1)) / N
-        )
-
-        return loss
-
-    return loss_function

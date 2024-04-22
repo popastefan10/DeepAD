@@ -5,11 +5,8 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from torchvision.transforms import v2
-from torchvision.transforms.v2._transform import Transform
 from typing import Callable, Literal
 
-from src.deep_ad.config import Config
 from src.deep_ad.data.dagm_utils import (
     dagm_get_class,
     dagm_get_image_name,
@@ -175,16 +172,3 @@ class DAGMPatchDataset:
             key = self.target_transform(key)
 
         return image, key
-
-
-def get_transform(config: Config) -> Transform:
-    return v2.Compose(
-        [
-            v2.RandomAffine(degrees=15, shear=(-15, 15, -15, 15), scale=(1, 1.1)),
-            v2.RandomHorizontalFlip(p=0.5),
-            v2.RandomVerticalFlip(p=0.5),
-            v2.CenterCrop(config.patch_size),
-            v2.ToImage(),
-            v2.ToDtype(torch.float32, scale=True)
-        ]
-    )

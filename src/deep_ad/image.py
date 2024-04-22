@@ -29,7 +29,7 @@ def plot_images(
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
     axes = axes.flatten()
     for ax, image, title in zip(axes, images, titles):
-        vmin, vmax = (0, 1) if np.max(image) - np.min(image) > 0.1 else (np.min(image), np.max(image))
+        vmin, vmax = (0, 1) if image.max() - image.min() > 0.1 else (image.min(), image.max())
         ax.imshow(image, cmap="gray", vmin=vmin, vmax=vmax) if len(image.shape) == 2 else ax.imshow(image)
         ax.set_title(title)
         ax.axis("off")
@@ -126,3 +126,22 @@ def intersection_over_union(bbox_a: TBBox, bbox_b: TBBox, epsilon: float = 1e-5)
     iou = inter_area / (union_area + epsilon)
 
     return iou
+
+
+def create_center_mask(image_size: int = 128, center_size: int = 32) -> np.ndarray:
+    """
+    Creates a binary mask for the center patch of an image. The mask will contain 1 in the center square and 0 in the
+    surrounding pixels.
+
+    Args:
+        `image_size` - The size of the image.
+        `center_size` - The size of the center patch.
+
+    Returns:
+        A binary mask with shape (`image_size`, `image_size`). The returned mask will have type `np.float32`.
+    """
+    mask: np.ndarray = np.zeros((image_size, image_size), dtype=np.float32)
+    offset = (image_size - center_size) // 2
+    mask[offset : offset + center_size, offset : offset + center_size] = 1.0
+
+    return mask
