@@ -1,5 +1,7 @@
 .vscode/
 data/processed/DAGM/
+models/
+save/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

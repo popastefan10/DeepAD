@@ -58,6 +58,7 @@ class Trainer:
         run_name: str,
         train_epochs: int | None = None,
         limit_batches: int | None = None,
+        save_epochs: list[int] | None = None,
     ) -> None:
         """
         Initializes the Trainer object.
@@ -67,6 +68,7 @@ class Trainer:
             * `limit_batches` - If this value is not `None`, this number of batches will be used for training and validation.
             The batches will be extracted prior to iterating through the dataset, because otherwise the DataLoader will
             shuffle the data and we won't use the same batches for training and validation.
+            * `save_epochs` - A list of epochs at which the model should be saved.
         """
         self.device = config.device
         self.model = model
@@ -79,6 +81,7 @@ class Trainer:
         self.loss_function = define_loss_function(Lambda=config.loss_Lambda, mask=self.mask, N=config.loss_N)
         self.optimizer = create_optimizer(model, config)
         self.train_epochs = train_epochs or config.train_epochs
+        self.save_epochs = save_epochs or []
 
         # If batches are limited, we need to create new DataLoaders that won't shuffle the data
         self.limit_batches = limit_batches
@@ -175,7 +178,7 @@ class Trainer:
             val_losses.append(val_loss)
             print(f"Epoch {epoch_num + 1:3d}/{self.train_epochs}: Train Loss {train_loss:.6f}, Val Loss {val_loss:.6f}")
 
-            # Save the model if the validation loss is the best so far
+            # Check if the model should be saved
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 self.save_manager.save_checkpoint(
@@ -185,6 +188,15 @@ class Trainer:
                     val_losses=val_losses,
                     epoch=epoch_num,
                     name=f"{self.run_name}_best",
+                )
+            if epoch_num + 1 in self.save_epochs:
+                self.save_manager.save_checkpoint(
+                    model=self.model,
+                    optimizer=self.optimizer,
+                    train_losses=train_losses,
+                    val_losses=val_losses,
+                    epoch=epoch_num,
+                    name=f"{self.run_name}_epoch_{epoch_num + 1}",
                 )
 
         print("Training finished.")
