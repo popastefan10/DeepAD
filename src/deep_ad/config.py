@@ -36,3 +36,6 @@ class Config:
         self.optim_adam_betas = (0.9, 0.999)
         self.optim_adam_eps = 1e-8
         self.train_epochs = 1
+
+        # Save
+        self.save_dir = os.path.join(root_dir, "save")

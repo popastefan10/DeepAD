@@ -9,6 +9,7 @@ from typing import Callable
 from src.deep_ad.config import Config
 from src.deep_ad.image import create_center_mask
 from src.deep_ad.measurements import GPUWatch, Stopwatch
+from src.deep_ad.save_manager import SaveManager
 
 
 def define_loss_function(
@@ -54,6 +55,7 @@ class Trainer:
         model: nn.Module,
         train_dataloader: DataLoader,
         val_dataloader: DataLoader,
+        run_name: str,
         train_epochs: int | None = None,
         limit_batches: int | None = None,
     ) -> None:
@@ -61,6 +63,7 @@ class Trainer:
         Initializes the Trainer object.
 
         Args:
+            * `run_name` - The name of the run. This will be used to save checkpoints and other data.
             * `limit_batches` - If this value is not `None`, this number of batches will be used for training and validation.
             The batches will be extracted prior to iterating through the dataset, because otherwise the DataLoader will
             shuffle the data and we won't use the same batches for training and validation.
@@ -69,6 +72,8 @@ class Trainer:
         self.model = model
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
+        self.save_manager = SaveManager(config)
+        self.run_name = run_name
 
         self.mask = torch.asarray(create_center_mask()).to(self.device)
         self.loss_function = define_loss_function(Lambda=config.loss_Lambda, mask=self.mask, N=config.loss_N)
@@ -162,12 +167,25 @@ class Trainer:
         """
         train_losses: list[float] = []
         val_losses: list[float] = []
+        best_val_loss = float("inf")
         for epoch_num in range(self.train_epochs):
             train_loss = self.train_epoch(epoch_num)
             val_loss = self.eval_epoch()
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             print(f"Epoch {epoch_num + 1:3d}/{self.train_epochs}: Train Loss {train_loss:.6f}, Val Loss {val_loss:.6f}")
+
+            # Save the model if the validation loss is the best so far
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                self.save_manager.save_checkpoint(
+                    model=self.model,
+                    optimizer=self.optimizer,
+                    train_losses=train_losses,
+                    val_losses=val_losses,
+                    epoch=epoch_num,
+                    name=f"{self.run_name}_best",
+                )
 
         print("Training finished.")
 

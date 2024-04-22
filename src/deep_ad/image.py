@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use("TkAgg")  # Faster rendering
 
 from mpl_interactions import panhandler, zoom_factory
@@ -107,6 +108,27 @@ def show_image_with_bboxes(image: np.ndarray, bboxes: list[TBBox], title: str = 
     panhandler(fig)
     zoom_factory(ax)
     plt.tight_layout()
+    plt.show()
+
+
+def plot_losses(
+    train_losses: list[float],
+    val_losses: list[float],
+    title: str,
+    save_path: str | None = None,
+) -> None:
+    """
+    Plots the training and validation losses over epochs.
+    """
+    plt.plot(train_losses, label="Train loss")
+    plt.plot(val_losses, label="Val loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    if save_path:
+        plt.savefig("../save/plots/losses.png", dpi=1000)
     plt.show()
 
 
