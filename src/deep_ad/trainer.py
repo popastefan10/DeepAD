@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from collections import OrderedDict
 from torch.utils.data import DataLoader
-from typing import Callable
+from typing import Callable, Literal
 
 from src.deep_ad.config import Config
 from src.deep_ad.image import create_center_mask
@@ -13,7 +13,7 @@ from src.deep_ad.save_manager import SaveManager
 
 
 def define_loss_function(
-    Lambda: float, mask: torch.Tensor, N: float
+    Lambda: float, mask: torch.Tensor, N: float, loss_type: Literal["l1_norm", "l1_loss"] = "l1_norm"
 ) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
     """
     Define the loss function for the model.
@@ -24,7 +24,7 @@ def define_loss_function(
         * `N` - Normalization factor. Defined in the paper as the number of pixels in the image.
     """
 
-    def loss_function(output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def loss_function_l1_norm(output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         diff = output - target
         loss = torch.mean(
             Lambda * torch.linalg.norm(mask * diff, ord=1, dim=(-2, -1)) / N
@@ -33,7 +33,15 @@ def define_loss_function(
 
         return loss
 
-    return loss_function
+    def loss_function_l1_loss(output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        loss = torch.mean(
+            Lambda * torch.nn.functional.l1_loss(mask * output, mask * target, reduction="sum") / N
+            + (1 - Lambda) * torch.nn.functional.l1_loss((1 - mask) * output, (1 - mask) * target, reduction="sum") / N
+        )
+
+        return loss
+
+    return loss_function_l1_norm if loss_type == "l1_norm" else loss_function_l1_loss
 
 
 def create_optimizer(model: nn.Module, config: Config) -> torch.optim.Adam:
@@ -78,7 +86,9 @@ class Trainer:
         self.run_name = run_name
 
         self.mask = torch.asarray(create_center_mask()).to(self.device)
-        self.loss_function = define_loss_function(Lambda=config.loss_Lambda, mask=self.mask, N=config.loss_N)
+        self.loss_function = define_loss_function(
+            Lambda=config.loss_Lambda, mask=self.mask, N=config.loss_N, loss_type=config.loss_type
+        )
         self.optimizer = create_optimizer(model, config)
         self.train_epochs = train_epochs or config.train_epochs
         self.save_epochs = save_epochs or []
@@ -187,7 +197,8 @@ class Trainer:
                     train_losses=train_losses,
                     val_losses=val_losses,
                     epoch=epoch_num,
-                    name=f"{self.run_name}_best",
+                    run_name=self.run_name,
+                    name="best",
                 )
             if epoch_num + 1 in self.save_epochs:
                 self.save_manager.save_checkpoint(
@@ -196,7 +207,8 @@ class Trainer:
                     train_losses=train_losses,
                     val_losses=val_losses,
                     epoch=epoch_num,
-                    name=f"{self.run_name}_epoch_{epoch_num + 1}",
+                    run_name=self.run_name,
+                    name=f"epoch_{epoch_num + 1}",
                 )
 
         print("Training finished.")

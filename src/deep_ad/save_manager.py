@@ -21,10 +21,11 @@ class SaveManager:
         train_losses: list[float],
         val_losses: list[float],
         epoch: int,
+        run_name: str,
         name: str,
     ) -> None:
         """Saves model and optimizer state dicts along with training and validation losses in a checkpoint file."""
-        save_dir = os.path.join(self.save_dir, "checkpoints")
+        save_dir = os.path.join(self.checkpoints_dir, run_name)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         save_path = os.path.join(save_dir, f"{name}.pt")
@@ -42,11 +43,11 @@ class SaveManager:
         print(f"Checkpoint saved at {save_path}")
 
     def get_checkpoint_path(self, name: str) -> str:
-        return os.path.join(self.save_dir, "checkpoints", name)
+        return os.path.join(self.checkpoints_dir, "checkpoints", name)
 
     @staticmethod
-    def get_checkpoint_path(config: Config, name: str) -> str:
-        return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), f"{name}.pt")
+    def get_checkpoint_path(config: Config, run_name: str, name: str) -> str:
+        return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), run_name, f"{name}.pt")
 
     @staticmethod
     def load_checkpoint(

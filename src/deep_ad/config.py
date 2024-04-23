@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 import torch
 
 from dotenv import dotenv_values
@@ -26,12 +27,13 @@ class Config:
         # PyTorch
         self.seed: int = 42
         self.generator = Generator().manual_seed(self.seed)
-        self.batch_size: int = 32
+        self.batch_size: int = 64
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Training
+        self.loss_type: Literal["l1_norm", "l1_loss"] = "l1_norm"
         self.loss_Lambda = 0.9
-        self.loss_N = 128 ** 2 # Keep in sync with patch_size
+        self.loss_N = 128**2  # Keep in sync with patch_size
         self.optim_lr = 2e-4
         self.optim_adam_betas = (0.9, 0.999)
         self.optim_adam_eps = 1e-8

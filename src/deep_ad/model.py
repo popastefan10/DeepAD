@@ -46,7 +46,7 @@ class DeepCNN(nn.Module):
     def _create_conv(
         self, kernel_size: int, dilation: int, stride: int, in_channels: int, out_channels: int, padding: int
     ) -> nn.Conv2d:
-        return nn.Conv2d(
+        conv = nn.Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -55,6 +55,10 @@ class DeepCNN(nn.Module):
             padding=padding,
             padding_mode="reflect",
         )
+        nn.init.trunc_normal_(conv.weight, mean=0.0, std=1.0, a=-5e-2, b=5e-2)
+        nn.init.constant_(conv.bias, 0.0)
+
+        return conv
 
     def _create_activation(self) -> nn.ELU:
         return nn.ELU()
@@ -64,6 +68,8 @@ class DeepCNN(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.network(x)
+        # out = torch.clip(out, -1.0, 1.0)
         # out = torch.nn.functional.sigmoid(out)
+        out = torch.nn.functional.tanh(out)
 
         return out

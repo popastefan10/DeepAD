@@ -39,7 +39,10 @@ def dagm_get_splits(config: Config, constructor: type[DS]) -> tuple[DS, DS, DS]:
 
 
 def dagm_patch_get_splits(
-    config: Config, train_transform: Transform | None = None, val_transform: Transform | None = None
+    config: Config,
+    train_transform: Transform | None = None,
+    val_transform: Transform | None = None,
+    classes: list[int] | None = None,
 ) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
     """
     Splits the patches into train, val and test datasets. \\
@@ -48,8 +51,9 @@ def dagm_patch_get_splits(
     Then, the val and test datasets will be obtained by splitting the remaining paths according to the second ratio.
     """
     # First, get all the paths and classes
+    classes = classes or list(range(1, 11))
     patches_dir = dagm_get_patches_dir(config, ppi=config.ppi, patch_size=config.raw_patch_size)
-    patches_cls_paths = [glob.glob(os.path.join(patches_dir, f"Class{cls}\\Train\\*.png")) for cls in range(1, 11)]
+    patches_cls_paths = [glob.glob(os.path.join(patches_dir, f"Class{cls}\\Train\\*.png")) for cls in classes]
     patches_paths: list[str] = []
     classes: list[int] = []
     for cls, cls_paths in enumerate(patches_cls_paths):

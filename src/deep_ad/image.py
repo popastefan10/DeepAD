@@ -128,7 +128,7 @@ def plot_losses(
     plt.legend()
     plt.tight_layout()
     if save_path:
-        plt.savefig("../save/plots/losses.png", dpi=1000)
+        plt.savefig(save_path, dpi=1000)
     plt.show()
 
 
