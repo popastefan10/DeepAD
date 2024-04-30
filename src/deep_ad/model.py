@@ -2,10 +2,13 @@ import torch
 
 from torch import nn
 
+from src.deep_ad.config import Config
+
 
 class DeepCNN(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
         super().__init__()
+        self.config = config
         self.network = nn.Sequential(
             self._create_conv(5, 1, 1, 1, 32, 2),
             self._create_activation(),
@@ -55,8 +58,9 @@ class DeepCNN(nn.Module):
             padding=padding,
             padding_mode="reflect",
         )
-        nn.init.trunc_normal_(conv.weight, mean=0.0, std=1.0, a=-5e-2, b=5e-2)
-        nn.init.constant_(conv.bias, 0.0)
+        if self.config.init_weights:
+            nn.init.trunc_normal_(conv.weight, mean=0.0, std=1.0, a=-5e-2, b=5e-2)
+            nn.init.constant_(conv.bias, 0.0)
 
         return conv
 

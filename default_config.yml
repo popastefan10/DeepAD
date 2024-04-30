@@ -1,0 +1,20 @@
+# Datasets
+dagm_lengths: [0.8, 0.1, 0.1] # Train, Val, Test
+raw_patch_size: 176 # Patches larger than 128 need to be cropped to avoid border effects when applying random transforms
+patch_size: 128 # Patch size specified in the paper; keep in sync with loss_N
+ppi: 4 # Patches per image - Number of patches to extract from each image
+patches_iou_threshold: 0.05 # Maximum IOU between patches to consider them different
+
+# PyTorch
+seed: 42
+
+# Training
+batch_size: 64
+init_weights: true
+loss_type: l1_norm
+loss_Lambda: 0.9
+loss_N: 128**2 # Keep in sync with patch_size
+optim_lr: 2e-4
+optim_adam_betas: [0.9, 0.999]
+optim_adam_eps: 1e-8
+train_epochs: 1
