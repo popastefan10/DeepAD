@@ -112,6 +112,17 @@ class Trainer:
         self.train_num_batches = len(self.train_dataloader)
         self.val_num_batches = len(self.val_dataloader)
 
+    def _save_checkpoint(self, epoch_num: int, train_losses: list[float], val_losses: list[float], name: str) -> None:
+        self.save_manager.save_checkpoint(
+            model=self.model,
+            optimizer=self.optimizer,
+            train_losses=train_losses,
+            val_losses=val_losses,
+            epoch=epoch_num,
+            run_name=self.run_name,
+            name=name,
+        )
+
     def train_epoch(self, epoch_num: int) -> float:
         """
         Computes the average loss for the training dataset and updates the model's weights.
@@ -125,7 +136,6 @@ class Trainer:
         self.model.train()
         epoch_loss = 0.0
         for batch_num, (images, _) in enumerate(self.train_dataloader):
-            torch.save(images, f"../models/epoch_{epoch_num}_batch_0.pth")
             self.optimizer.zero_grad()
 
             # Remove the center from each image
@@ -178,38 +188,26 @@ class Trainer:
         Returns:
             A tuple containing the training and validation losses for each epoch.
         """
+        stopwatch = Stopwatch()
         train_losses: list[float] = []
         val_losses: list[float] = []
         best_val_loss = float("inf")
         for epoch_num in range(self.train_epochs):
+            stopwatch.start()
             train_loss = self.train_epoch(epoch_num)
             val_loss = self.eval_epoch()
             train_losses.append(train_loss)
             val_losses.append(val_loss)
-            print(f"Epoch {epoch_num + 1:3d}/{self.train_epochs}: Train Loss {train_loss:.6f}, Val Loss {val_loss:.6f}")
+            print(
+                f"Epoch {epoch_num + 1:3d}/{self.train_epochs}: Train Loss {train_loss:.6f}, Val Loss {val_loss:.6f}, time {stopwatch.elapsed_since_beginning():.3f} s"
+            )
 
             # Check if the model should be saved
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                self.save_manager.save_checkpoint(
-                    model=self.model,
-                    optimizer=self.optimizer,
-                    train_losses=train_losses,
-                    val_losses=val_losses,
-                    epoch=epoch_num,
-                    run_name=self.run_name,
-                    name="best",
-                )
+                self._save_checkpoint(epoch_num, train_losses, val_losses, name="best")
             if epoch_num + 1 in self.save_epochs:
-                self.save_manager.save_checkpoint(
-                    model=self.model,
-                    optimizer=self.optimizer,
-                    train_losses=train_losses,
-                    val_losses=val_losses,
-                    epoch=epoch_num,
-                    run_name=self.run_name,
-                    name=f"epoch_{epoch_num + 1}",
-                )
+                self._save_checkpoint(epoch_num, train_losses, val_losses, name=f"epoch_{epoch_num + 1}")
 
         print("Training finished.")
 

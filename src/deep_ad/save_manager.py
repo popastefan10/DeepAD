@@ -40,7 +40,7 @@ class SaveManager:
             },
             save_path,
         )
-        print(f"Checkpoint saved at {save_path}")
+        print(f"Checkpoint saved at '{save_path}'")
 
     def get_checkpoint_path(self, name: str) -> str:
         return os.path.join(self.checkpoints_dir, "checkpoints", name)

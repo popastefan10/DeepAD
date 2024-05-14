@@ -30,7 +30,7 @@ class Config:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Training
-        self.batch_size = 64
+        self.batch_size = 32
         self.init_weights: bool = True
         self.loss_type: Literal["l1_norm", "l1_loss"] = "l1_norm"
         self.loss_Lambda = 0.9

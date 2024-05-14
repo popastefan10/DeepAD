@@ -35,7 +35,6 @@ def plot_images(
         ax.set_title(title)
         ax.axis("off")
     plt.tight_layout()
-    plt.show()
 
 
 # https://mpl-interactions.readthedocs.io/en/stable/examples/zoom-factory.html
@@ -116,10 +115,12 @@ def plot_losses(
     val_losses: list[float],
     title: str,
     save_path: str | None = None,
+    show_plot: bool = True,
 ) -> None:
     """
     Plots the training and validation losses over epochs.
     """
+    plt.figure()
     plt.plot(train_losses, label="Train loss")
     plt.plot(val_losses, label="Val loss")
     plt.xlabel("Epoch")
@@ -129,7 +130,8 @@ def plot_losses(
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=1000)
-    plt.show()
+    if show_plot:
+        plt.show()
 
 
 # Computes intersection over union between two bounding boxes

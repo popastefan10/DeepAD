@@ -9,7 +9,7 @@ patches_iou_threshold: 0.05 # Maximum IOU between patches to consider them diffe
 seed: 42
 
 # Training
-batch_size: 64
+batch_size: 32
 init_weights: true
 loss_type: l1_norm
 loss_Lambda: 0.9

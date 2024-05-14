@@ -11,37 +11,53 @@ class DeepCNN(nn.Module):
         self.config = config
         self.network = nn.Sequential(
             self._create_conv(5, 1, 1, 1, 32, 2),
+            self._create_batch_norm(32),
             self._create_activation(),
             self._create_conv(3, 1, 1, 32, 64, 1),
+            self._create_batch_norm(64),
             self._create_activation(),
             self._create_conv(3, 1, 1, 64, 64, 1),
+            self._create_batch_norm(64),
             self._create_activation(),
             self._create_conv(3, 1, 2, 64, 128, 1),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 1, 1, 128, 128, 1),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 1, 1, 128, 128, 1),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 2, 1, 128, 128, 2),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 4, 1, 128, 128, 4),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 8, 1, 128, 128, 8),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 16, 1, 128, 128, 16),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 1, 1, 128, 128, 1),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_conv(3, 1, 1, 128, 128, 1),
+            self._create_batch_norm(128),
             self._create_activation(),
             self._create_upscale(),
             self._create_conv(3, 1, 1, 128, 64, 1),
+            self._create_batch_norm(64),
             self._create_activation(),
             self._create_conv(3, 1, 1, 64, 64, 1),
+            self._create_batch_norm(64),
             self._create_activation(),
             self._create_conv(3, 1, 1, 64, 32, 1),
+            self._create_batch_norm(32),
             self._create_activation(),
             self._create_conv(3, 1, 1, 32, 16, 1),
+            self._create_batch_norm(16),
             self._create_activation(),
             self._create_conv(3, 1, 1, 16, 1, 1),
         )
@@ -63,6 +79,9 @@ class DeepCNN(nn.Module):
             nn.init.constant_(conv.bias, 0.0)
 
         return conv
+
+    def _create_batch_norm(self, num_features: int) -> nn.BatchNorm2d:
+        return nn.BatchNorm2d(num_features=num_features, track_running_stats=True)
 
     def _create_activation(self) -> nn.ELU:
         return nn.ELU()
