@@ -21,7 +21,12 @@ def show_image(title: str, image: np.ndarray):
 
 
 def plot_images(
-    images: list[np.ndarray], titles: list[str], rows: int = 1, cols: int = 1, figsize: tuple[int, int] = (5, 5)
+    images: list[np.ndarray],
+    titles: list[str],
+    rows: int = 1,
+    cols: int = 1,
+    figsize: tuple[int, int] = (5, 5),
+    show: bool = True,
 ) -> None:
     """
     Plots a list of images with their respective titles in a grid layout.
@@ -35,6 +40,8 @@ def plot_images(
         ax.set_title(title)
         ax.axis("off")
     plt.tight_layout()
+    if show:
+        plt.show()
 
 
 # https://mpl-interactions.readthedocs.io/en/stable/examples/zoom-factory.html

@@ -1,13 +1,14 @@
 import pandas as pd
 import torch
 import torch.nn as nn
+import torchvision.transforms.v2 as v2
 
 from collections import OrderedDict
 from torch.utils.data import DataLoader
 from typing import Callable, Literal
 
 from src.deep_ad.config import Config
-from src.deep_ad.image import create_center_mask
+from src.deep_ad.image import create_center_mask, plot_images
 from src.deep_ad.measurements import GPUWatch, Stopwatch
 from src.deep_ad.save_manager import SaveManager
 
@@ -78,6 +79,7 @@ class Trainer:
             shuffle the data and we won't use the same batches for training and validation.
             * `save_epochs` - A list of epochs at which the model should be saved.
         """
+        self.config = config
         self.device = config.device
         self.model = model
         self.train_dataloader = train_dataloader
@@ -123,6 +125,17 @@ class Trainer:
             name=name,
         )
 
+    def _save_config(self) -> None:
+        """Saves the configuration passed in the constructor."""
+        self.save_manager.save_config(config=self.config, run_name=self.run_name)
+
+    def _normalize_to_mean_std(self, tensor: torch.Tensor, mean: torch.tensor, std: torch.tensor) -> torch.Tensor:
+        output = tensor - tensor.mean(dim=(0, 2, 3), keepdim=True)
+        output = output / output.std(dim=(0, 2, 3), keepdim=True)
+        output = output * std + mean
+
+        return output
+
     def train_epoch(self, epoch_num: int) -> float:
         """
         Computes the average loss for the training dataset and updates the model's weights.
@@ -142,6 +155,16 @@ class Trainer:
             images = images.to(self.device)
             inputs = images * (1 - self.mask)
             output = self.model(inputs)
+            output = self._normalize_to_mean_std(
+                output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
+            )
+            if epoch_num == 0 or (epoch_num + 1) % 50 == 0:
+            # if epoch_num == 99:
+                p_images = [images[0], inputs[0], output[0]]
+                p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
+                plot_images(images=p_images, titles=["Original", "Input", "Output"], cols=3)
+                for im in p_images:
+                    print(im.shape, im.min(), im.max())
 
             loss = self.loss_function(output, images)
             loss.backward()
@@ -172,6 +195,9 @@ class Trainer:
                 images = images.to(self.device)
                 inputs = images * (1 - self.mask)
                 output = self.model(inputs)
+                output = self._normalize_to_mean_std(
+                    output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
+                )
 
                 loss = self.loss_function(output, images)
                 epoch_loss += loss.item()
@@ -188,6 +214,7 @@ class Trainer:
         Returns:
             A tuple containing the training and validation losses for each epoch.
         """
+        self._save_config()
         stopwatch = Stopwatch()
         train_losses: list[float] = []
         val_losses: list[float] = []

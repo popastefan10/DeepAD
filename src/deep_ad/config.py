@@ -77,6 +77,9 @@ class Config:
         self.train_epochs = yml_config.get("train_epochs") or self.train_epochs
 
     def save(self, config_path: str) -> None:
+        """
+        `config_path` - Path to save the configuration file, e.g. "save/config.yml".
+        """
         with open(config_path, "w") as f:
             yaml.safe_dump(self.__getstate__(), f, default_flow_style=False)
 

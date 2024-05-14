@@ -65,3 +65,10 @@ class SaveManager:
         val_losses = checkpoint["val_losses"]
 
         return model, optimizer, train_losses, val_losses, epoch
+
+    def save_config(self, config: Config, run_name: str) -> None:
+        save_dir = os.path.join(self.checkpoints_dir, run_name)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_path = os.path.join(save_dir, "config.yml")
+        config.save(save_path)
