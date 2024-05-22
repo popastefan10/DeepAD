@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import os
 import torch
 import torch.nn as nn
@@ -9,10 +10,15 @@ class SaveManager:
     def __init__(self, config: Config) -> None:
         self.save_dir = config.save_dir
         self.checkpoints_dir = self._get_checkpoints_dir(self.save_dir)
+        self.plots_dir = self._get_plots_dir(self.save_dir)
 
     @staticmethod
     def _get_checkpoints_dir(save_dir: str) -> str:
         return os.path.join(save_dir, "checkpoints")
+
+    @staticmethod
+    def _get_plots_dir(save_dir: str) -> str:
+        return os.path.join(save_dir, "plots")
 
     def save_checkpoint(
         self,
@@ -65,6 +71,12 @@ class SaveManager:
         val_losses = checkpoint["val_losses"]
 
         return model, optimizer, train_losses, val_losses, epoch
+
+    def save_plot(self, run_name: str, plot_name: str) -> None:
+        plot_dir = os.path.join(self.plots_dir, run_name)
+        if not os.path.exists(plot_dir):
+            os.makedirs(plot_dir)
+        plt.savefig(os.path.join(plot_dir, plot_name))
 
     def save_config(self, config: Config, run_name: str) -> None:
         save_dir = os.path.join(self.checkpoints_dir, run_name)

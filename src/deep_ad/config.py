@@ -29,9 +29,12 @@ class Config:
         self.generator = Generator().manual_seed(self.seed)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        # Model
+        self.batch_norm: bool = True
+        self.init_weights: bool = True
+
         # Training
         self.batch_size = 32
-        self.init_weights: bool = True
         self.loss_type: Literal["l1_norm", "l1_loss"] = "l1_norm"
         self.loss_Lambda = 0.9
         self.loss_N = 128**2  # Keep in sync with patch_size
@@ -61,6 +64,10 @@ class Config:
         # PyTorch
         self.seed = yml_config.get("seed") or self.seed
         self.generator = Generator().manual_seed(self.seed)
+
+        # Model
+        self.batch_norm = yml_config.get("batch_norm") or self.batch_norm
+        self.init_weights = yml_config.get("init_weights") or self.init_weights
 
         # Training
         self.batch_size = yml_config.get("batch_size") or self.batch_size
@@ -94,9 +101,11 @@ class Config:
             + "\n\nPyTorch:"
             + f"\nseed: {self.seed}"
             + f"\ndevice: {self.device}"
+            + "\n\nModel:"
+            + f"\nbatch_norm: {self.batch_norm}"
+            + f"\ninit_weights: {self.init_weights}"
             + "\n\nTraining:"
             + f"\nbatch_size: {self.batch_size}"
-            + f"\ninit_weights: {self.init_weights}"
             + f"\nloss_type: {self.loss_type}"
             + f"\nloss_Lambda: {self.loss_Lambda}"
             + f"\nloss_N: {self.loss_N}"

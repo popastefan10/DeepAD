@@ -27,3 +27,24 @@ def create_validation_transform(config: Config) -> Transform:
             v2.ToDtype(torch.float32, scale=True),
         ]
     )
+
+
+def create_to_image_transform() -> Transform:
+    return v2.Compose(
+        [
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
+        ]
+    )
+
+
+def normalize_to_mean_std(tensor: torch.Tensor, mean: torch.tensor, std: torch.tensor) -> torch.Tensor:
+    """
+    Normalize a tensor to a given mean and standard deviation.
+    The tensor is assumed to have shape `(B, C, H, W)`.
+    """
+    output = tensor - tensor.mean(dim=(0, 2, 3), keepdim=True)
+    output = output / output.std(dim=(0, 2, 3), keepdim=True)
+    output = output * std + mean
+
+    return output

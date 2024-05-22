@@ -1,3 +1,4 @@
+from typing import Literal
 import matplotlib
 
 matplotlib.use("TkAgg")  # Faster rendering
@@ -26,6 +27,8 @@ def plot_images(
     rows: int = 1,
     cols: int = 1,
     figsize: tuple[int, int] = (5, 5),
+    title: str | None = None,
+    range: Literal["auto", "01", "255", "minmax"] = "auto",
     show: bool = True,
 ) -> None:
     """
@@ -34,11 +37,24 @@ def plot_images(
     """
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
     axes = axes.flatten()
-    for ax, image, title in zip(axes, images, titles):
-        vmin, vmax = (0, 1) if image.max() - image.min() > 0.1 else (image.min(), image.max())
+    for ax, image, img_title in zip(axes, images, titles):
+        vmin, vmax = None, None
+        if range == "auto":
+            vmin, vmax = (0, 1) if image.max() - image.min() > 0.1 else (image.min(), image.max())
+        elif range == "01":
+            vmin, vmax = 0, 1
+        elif range == "255":
+            vmin, vmax = 0, 255
+        elif range == "minmax":
+            vmin, vmax = image.min(), image.max()
+        else:
+            raise ValueError(f"Invalid range: {range}")
+
         ax.imshow(image, cmap="gray", vmin=vmin, vmax=vmax) if len(image.shape) == 2 else ax.imshow(image)
-        ax.set_title(title)
+        ax.set_title(img_title)
         ax.axis("off")
+    if title:
+        plt.suptitle(title)
     plt.tight_layout()
     if show:
         plt.show()

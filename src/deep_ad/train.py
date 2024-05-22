@@ -51,7 +51,7 @@ def main() -> None:
     )
 
     # Start training
-    train_losses, val_losses = trainer.train()
+    train_losses, val_losses = trainer.train(plot_train=True)
     plot_dir = f"{ARGS.root_dir}/save/plots/{run_name}"
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)

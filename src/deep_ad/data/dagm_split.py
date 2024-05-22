@@ -80,6 +80,6 @@ def dagm_patch_get_splits(
         transform=train_transform,
     )
     val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes, transform=val_transform)
-    test_dataset = DAGMPatchDataset(patch_paths=test_paths, patch_classes=test_classes)
+    test_dataset = DAGMPatchDataset(patch_paths=test_paths, patch_classes=test_classes, transform=val_transform)
 
     return train_dataset, val_dataset, test_dataset
