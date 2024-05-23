@@ -56,12 +56,21 @@ class SaveManager:
         return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), run_name, f"{name}.pt")
 
     @staticmethod
+    def get_config_path(save_dir: str, run_name: str) -> str:
+        return os.path.join(SaveManager._get_checkpoints_dir(save_dir), run_name, "config.yml")
+
+    @staticmethod
     def load_checkpoint(
         model: nn.Module, optimizer: torch.optim.Optimizer, path: str
     ) -> tuple[nn.Module, torch.optim.Optimizer, list[float], list[float], int]:
         """
-        Loads model and optimizer state dicts along with training and validation losses from a checkpoint file. \\
-        Returns the loaded model, optimizer, training losses, validation losses, and the epoch.
+        Loads model and optimizer state dicts along with training and validation losses from a checkpoint file.
+        Returns:
+            - pretrained model,
+            - loaded optimizer
+            - training losses
+            - validation losses
+            - epoch
         """
         checkpoint = torch.load(path)
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -69,6 +78,7 @@ class SaveManager:
         epoch = checkpoint["epoch"]
         train_losses = checkpoint["train_losses"]
         val_losses = checkpoint["val_losses"]
+        print(f"Checkpoint loaded from '{path}'.")
 
         return model, optimizer, train_losses, val_losses, epoch
 

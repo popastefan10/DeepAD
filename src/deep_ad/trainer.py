@@ -1,11 +1,10 @@
 import pandas as pd
 import torch
 import torch.nn as nn
-import torchvision.transforms.v2 as v2
 
 from collections import OrderedDict
 from torch.utils.data import DataLoader
-from typing import Callable, Literal
+from typing import Callable, Literal, TypedDict
 
 from src.deep_ad.config import Config
 from src.deep_ad.image import create_center_mask, plot_images
@@ -52,6 +51,12 @@ def create_optimizer(model: nn.Module, config: Config) -> torch.optim.Adam:
     )
 
 
+class PretrainedDict(TypedDict):
+    train_losses: list[float]
+    val_losses: list[float]
+    epoch: int
+
+
 class Trainer:
     """
     A Trainer object should receive a model and some configuration parameters and train the model for a specified number
@@ -63,12 +68,14 @@ class Trainer:
         self,
         config: Config,
         model: nn.Module,
+        optimizer: torch.optim.Optimizer,
         train_dataloader: DataLoader,
         val_dataloader: DataLoader,
         run_name: str,
         train_epochs: int | None = None,
         limit_batches: int | None = None,
         save_epochs: list[int] | None = None,
+        pretrained_dict: PretrainedDict | None = None,
     ) -> None:
         """
         Initializes the Trainer object.
@@ -79,6 +86,8 @@ class Trainer:
             The batches will be extracted prior to iterating through the dataset, because otherwise the DataLoader will
             shuffle the data and we won't use the same batches for training and validation.
             * `save_epochs` - A list of epochs at which the model should be saved.
+            * `pretrained_epoch` - If this value is not `None`, the trainer will consider that the model has already been
+            trained for this number of epochs. This is useful when resuming training from a checkpoint.
         """
         self.config = config
         self.device = config.device
@@ -92,9 +101,10 @@ class Trainer:
         self.loss_function = define_loss_function(
             Lambda=config.loss_Lambda, mask=self.mask, N=config.loss_N, loss_type=config.loss_type
         )
-        self.optimizer = create_optimizer(model, config)
+        self.optimizer = optimizer
         self.train_epochs = train_epochs or config.train_epochs
         self.save_epochs = save_epochs or []
+        self.pretrained_dict = pretrained_dict
 
         # If batches are limited, we need to create new DataLoaders that won't shuffle the data
         self.limit_batches = limit_batches
@@ -153,7 +163,7 @@ class Trainer:
             output = normalize_to_mean_std(
                 output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
             )  # Reverse normalization
-            if should_plot and (epoch_num == 0 or (epoch_num + 1) % 10 == 0):
+            if should_plot and (epoch_num == 0 or (epoch_num + 1) % 50 == 0):
                 p_images = [images[0], inputs[0], output[0]]
                 p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                 plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
@@ -194,7 +204,7 @@ class Trainer:
                 output = normalize_to_mean_std(
                     output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
                 )  # Reverse normalization
-                if should_plot and (epoch_num == 0 or (epoch_num + 1) % 10 == 0):
+                if should_plot and (epoch_num == 0 or (epoch_num + 1) % 50 == 0):
                     p_images = [images[0], inputs[0], output[0]]
                     p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                     plot_images(images=p_images, titles=["Val Original", "Input", "Output"], cols=3, show=False)
@@ -212,15 +222,20 @@ class Trainer:
 
     def train(self, plot_train: bool = False, plot_val: bool = False) -> tuple[list[float], list[float]]:
         """
+        Starts the training process. If `pretrained_epoch` is not `None`, the training will continue from the next epoch,
+        i.e. `pretrained_epoch + 1`.
         Returns:
             A tuple containing the training and validation losses for each epoch.
         """
         self._save_config()
         stopwatch = Stopwatch()
-        train_losses: list[float] = []
-        val_losses: list[float] = []
+        train_losses: list[float] = [] if self.pretrained_dict is None else self.pretrained_dict["train_losses"]
+        val_losses: list[float] = [] if self.pretrained_dict is None else self.pretrained_dict["val_losses"]
+        start_epoch: int = 0 if self.pretrained_dict is None else self.pretrained_dict["epoch"] + 1
+        if start_epoch > 0:
+            print(f"Resuming training from epoch {start_epoch}.")
         best_val_loss = float("inf")
-        for epoch_num in range(self.train_epochs):
+        for epoch_num in range(start_epoch, self.train_epochs):
             stopwatch.start()
             train_loss = self.train_epoch(epoch_num, should_plot=plot_train)
             val_loss = self.eval_epoch(epoch_num, should_plot=plot_val)
