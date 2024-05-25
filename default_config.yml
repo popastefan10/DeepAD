@@ -21,3 +21,4 @@ optim_lr: 2e-4
 optim_adam_betas: [0.9, 0.999]
 optim_adam_eps: 1e-8
 train_epochs: 1
+train_classes: [10] # On which classes, from 1-10, the training will take place

@@ -14,15 +14,23 @@ from src.deep_ad.transforms import create_training_transform, create_validation_
 
 
 def main() -> None:
-    pretrained_run_name, pretrained_checkpoint_name = None, None
+    # Load the configuration
+    config = Config(root_dir=ARGS.root_dir, config_path=ARGS.config_path)
     if ARGS.pretrained:
         pretrained_run_name, pretrained_checkpoint_name = ARGS.pretrained.split("/")
         print(f"\n\nLoading model from run {pretrained_run_name}/{pretrained_checkpoint_name}.")
-
-    config = Config(root_dir=ARGS.root_dir, config_path=ARGS.config_path)
-    if ARGS.pretrained:
         config.load(SaveManager.get_config_path(config.save_dir, run_name=pretrained_run_name))
+    if ARGS.epochs:
+        config.train_epochs = ARGS.epochs
+    if ARGS.train_classes:
+        if "-" in ARGS.train_classes:
+            start, end = ARGS.train_classes.split("-")
+            config.train_classes = list(range(int(start), int(end) + 1))
+        else:
+            config.train_classes = [int(ARGS.train_classes)]
+        assert all(1 <= c <= 10 for c in config.train_classes), "Classes must be between 1 and 10."
     print(f"\nRunning training with the following configuration:\n\n{config}")
+
     run_name = ARGS.run_name
     print(f"\n\nResults will be saved to '{run_name}'.")
 
@@ -36,7 +44,9 @@ def main() -> None:
     # Load the data
     train_transform = create_training_transform(config)
     val_transform = create_validation_transform(config)
-    train_dataset, val_dataset, _ = dagm_patch_get_splits(config, train_transform, val_transform, classes=[10])
+    train_dataset, val_dataset, _ = dagm_patch_get_splits(
+        config, train_transform, val_transform, classes=config.train_classes
+    )
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False)
     # test_dataloader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False)
@@ -67,14 +77,14 @@ def main() -> None:
         train_dataloader,
         val_dataloader,
         run_name=run_name,
-        train_epochs=ARGS.epochs,
+        train_epochs=config.train_epochs,
         limit_batches=ARGS.limit_batches,
         save_epochs=ARGS.save_epochs,
         pretrained_dict=pretrained_dict,
     )
 
     # Start training
-    train_losses, val_losses = trainer.train(plot_train=True)
+    train_losses, val_losses = trainer.train(plot_train=True, plot_val=False)
     plot_dir = f"{ARGS.root_dir}/save/plots/{run_name}"
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
@@ -110,6 +120,13 @@ if __name__ == "__main__":
 
     # Training arguments
     parser.add_argument("-e", "--epochs", dest="epochs", type=int, required=True, help="Number of epochs to train for.")
+    parser.add_argument(
+        "--train-classes",
+        dest="train_classes",
+        type=str,
+        required=True,
+        help="Which classes to train on. Can be passed as a single number, or as a range: <start>-<end (inclusive)>",
+    )
     parser.add_argument(
         "-l", "--limit", dest="limit_batches", type=int, required=False, help="Limit the number of batches per epoch."
     )

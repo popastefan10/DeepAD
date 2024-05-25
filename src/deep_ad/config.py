@@ -42,6 +42,7 @@ class Config:
         self.optim_adam_betas = (0.9, 0.999)
         self.optim_adam_eps = 1e-8
         self.train_epochs = 1
+        self.train_classes = [10]
 
         # Save
         self.save_dir = os.path.join(root_dir, "save")
@@ -113,6 +114,7 @@ class Config:
             + f"\noptim_adam_betas: {self.optim_adam_betas}"
             + f"\noptim_adam_eps: {self.optim_adam_eps}"
             + f"\ntrain_epochs: {self.train_epochs}"
+            + f"\ntrain_classes: {self.train_classes}"
         )
 
     def __repr__(self) -> str:

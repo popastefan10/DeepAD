@@ -163,16 +163,18 @@ class Trainer:
             output = normalize_to_mean_std(
                 output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
             )  # Reverse normalization
-            if should_plot and (epoch_num == 0 or (epoch_num + 1) % 50 == 0):
-                p_images = [images[0], inputs[0], output[0]]
-                p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
-                plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
-                self.save_manager.save_plot(run_name=self.run_name, plot_name=f"train_epoch_{epoch_num}.pdf")
+            # output = normalize_to_mean_std(output, mean=0.5267019737681685, std=0.19957033073362934)
 
             loss = self.loss_function(output, images)
             loss.backward()
             self.optimizer.step()
             epoch_loss += loss.item()
+
+            if should_plot and (epoch_num == 0 or (epoch_num + 1) % 20 == 0):
+                p_images = [images[0], inputs[0], output[0]]
+                p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
+                plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
+                self.save_manager.save_plot(run_name=self.run_name, plot_name=f"train_epoch_{epoch_num}.pdf")
 
             if batch_num % 100 == 0:
                 print(f"\tBatch {batch_num + 1:3d}/{self.train_num_batches}: Loss {loss.item():.6f}")
@@ -196,22 +198,22 @@ class Trainer:
             for batch_num, (images, _) in enumerate(self.val_dataloader):
                 # Remove the center from each image
                 images = images.to(self.device)
-                inputs = normalize_to_mean_std(
-                    images.type(torch.float64), mean=0.5267019737681685, std=0.19957033073362934
-                )
-                inputs = inputs.type(torch.float32) * (1 - self.mask)
+                inputs = normalize_to_mean_std(images, mean=0.5267019737681685, std=0.19957033073362934)
+                inputs = inputs * (1 - self.mask)
                 output = self.model(inputs)
                 output = normalize_to_mean_std(
                     output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
                 )  # Reverse normalization
-                if should_plot and (epoch_num == 0 or (epoch_num + 1) % 50 == 0):
+                # output = normalize_to_mean_std(output, mean=0.5267019737681685, std=0.19957033073362934)
+
+                loss = self.loss_function(output, images)
+                epoch_loss += loss.item()
+
+                if should_plot and (epoch_num == 0 or (epoch_num + 1) % 20 == 0):
                     p_images = [images[0], inputs[0], output[0]]
                     p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                     plot_images(images=p_images, titles=["Val Original", "Input", "Output"], cols=3, show=False)
                     self.save_manager.save_plot(run_name=self.run_name, plot_name=f"val_epoch_{epoch_num}.pdf")
-
-                loss = self.loss_function(output, images)
-                epoch_loss += loss.item()
 
                 if self.limit_batches and batch_num + 1 >= self.limit_batches:
                     break

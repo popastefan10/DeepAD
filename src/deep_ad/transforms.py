@@ -38,13 +38,15 @@ def create_to_image_transform() -> Transform:
     )
 
 
-def normalize_to_mean_std(tensor: torch.Tensor, mean: torch.tensor, std: torch.tensor) -> torch.Tensor:
+def normalize_to_mean_std(tensor: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
     """
     Normalize a tensor to a given mean and standard deviation.
     The tensor is assumed to have shape `(B, C, H, W)`.
     """
-    output = tensor - tensor.mean(dim=(0, 2, 3), keepdim=True)
-    output = output / output.std(dim=(0, 2, 3), keepdim=True)
-    output = output * std + mean
+    tensor64 = tensor.to(torch.float64)
+    output64 = tensor64 - tensor64.mean(dim=(0, 2, 3), keepdim=True)
+    output64 = output64 / output64.std(dim=(0, 2, 3), keepdim=True)
+    output64 = output64 * std + mean
+    output32 = output64.to(torch.float32)
 
-    return output
+    return output32
