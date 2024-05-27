@@ -20,6 +20,9 @@ def main() -> None:
         pretrained_run_name, pretrained_checkpoint_name = ARGS.pretrained.split("/")
         print(f"\n\nLoading model from run {pretrained_run_name}/{pretrained_checkpoint_name}.")
         config.load(SaveManager.get_config_path(config.save_dir, run_name=pretrained_run_name))
+    if ARGS.device:
+        assert ARGS.device == "cpu" or ARGS.device == "cuda"
+        config.device = ARGS.device
     if ARGS.epochs:
         config.train_epochs = ARGS.epochs
     if ARGS.train_classes:
@@ -60,7 +63,7 @@ def main() -> None:
 
     if ARGS.pretrained:
         checkpoint_path = SaveManager.get_checkpoint_path(
-            config, run_name=pretrained_run_name, name=pretrained_checkpoint_name
+            config, run_name=pretrained_run_name, checkpoint_name=pretrained_checkpoint_name
         )
         model, optimizer, train_losses, val_losses, epoch = SaveManager.load_checkpoint(
             model,
@@ -119,6 +122,7 @@ if __name__ == "__main__":
     parser.add_argument("-y", "--yes", dest="yes", action="store_true", help="Proceed without confirmation.")
 
     # Training arguments
+    parser.add_argument("--device", dest="device", type=str, required=True, help="Either cpu or cuda.")
     parser.add_argument("-e", "--epochs", dest="epochs", type=int, required=True, help="Number of epochs to train for.")
     parser.add_argument(
         "--train-classes",

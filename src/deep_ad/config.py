@@ -44,6 +44,11 @@ class Config:
         self.train_epochs = 1
         self.train_classes = [10]
 
+        # Inference
+        self.center_size = 32  # Size of the center region that will be inpainted
+        self.content_size = 24  # To avoid border effects, we will take the center of the inpainted region
+        self.stride = 16  # Stride for the sliding window
+
         # Save
         self.save_dir = os.path.join(root_dir, "save")
 

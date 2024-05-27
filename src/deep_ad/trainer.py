@@ -152,13 +152,16 @@ class Trainer:
         """
         self.model.train()
         epoch_loss = 0.0
+        stopwatch = Stopwatch()
+        stopwatch.start()
         for batch_num, (images, _) in enumerate(self.train_dataloader):
+            stopwatch.checkpoint()
             self.optimizer.zero_grad()
 
             # Remove the center from each image
             images: torch.Tensor = images.to(self.device)
-            inputs = normalize_to_mean_std(images.type(torch.float64), mean=0.5267019737681685, std=0.19957033073362934)
-            inputs = inputs.type(torch.float32) * (1 - self.mask)
+            inputs = normalize_to_mean_std(images, mean=0.5267019737681685, std=0.19957033073362934)
+            inputs = inputs * (1 - self.mask)
             output = self.model(inputs)
             output = normalize_to_mean_std(
                 output, images.mean(dim=(0, 2, 3), keepdim=True), images.std(dim=(0, 2, 3), keepdim=True)
@@ -176,8 +179,10 @@ class Trainer:
                 plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
                 self.save_manager.save_plot(run_name=self.run_name, plot_name=f"train_epoch_{epoch_num}.pdf")
 
-            if batch_num % 100 == 0:
-                print(f"\tBatch {batch_num + 1:3d}/{self.train_num_batches}: Loss {loss.item():.6f}")
+            if batch_num == 0 or (batch_num + 1) % 10 == 0:
+                print(
+                    f"\tBatch {batch_num + 1:3d}/{self.train_num_batches}: Train Loss {loss.item():.6f}, time {stopwatch.elapsed_since_last_checkpoint():.3f} s"
+                )
             if self.limit_batches and batch_num + 1 >= self.limit_batches:
                 break
 

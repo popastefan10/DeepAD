@@ -48,12 +48,12 @@ class SaveManager:
         )
         print(f"Checkpoint saved at '{save_path}'")
 
-    def get_checkpoint_path(self, name: str) -> str:
-        return os.path.join(self.checkpoints_dir, "checkpoints", name)
+    def get_checkpoint_path(self, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(self.checkpoints_dir, "checkpoints", run_name, f"{checkpoint_name}.pt")
 
     @staticmethod
-    def get_checkpoint_path(config: Config, run_name: str, name: str) -> str:
-        return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), run_name, f"{name}.pt")
+    def get_checkpoint_path(config: Config, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), run_name, f"{checkpoint_name}.pt")
 
     @staticmethod
     def get_config_path(save_dir: str, run_name: str) -> str:

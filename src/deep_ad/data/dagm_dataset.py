@@ -27,13 +27,14 @@ class DAGMDataset(Dataset):
     # Returns all image and label paths for given classes and type
     @staticmethod
     def __get_images_and_labels_paths(
-        img_dir: str, classes: list[int], type: DAGM_dataset_type
+        img_dir: str, classes: list[int], type: DAGM_dataset_type, train: bool = True
     ) -> tuple[list[str], list[str]]:
         image_paths: list[str] = []
         label_paths: list[str] = []
         for cls in classes:
-            image_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png")))
-            label_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "Label", "*_label.png")))
+            subset = "Train" if train else "Test"
+            image_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", subset, "*.png")))
+            label_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", subset, "Label", "*_label.png")))
 
         if type == "Defect-free":
             # Remove images with labels
@@ -46,7 +47,7 @@ class DAGMDataset(Dataset):
         elif type == "Defect-only":
             # Keep only images with labels
             label_images_paths: list[str] = [
-                dagm_get_image_path(img_dir, dagm_get_class(label_path), dagm_get_label_name(label_path))
+                dagm_get_image_path(img_dir, dagm_get_class(label_path), dagm_get_label_name(label_path), train)
                 for label_path in label_paths
             ]
             image_paths = list(set(label_images_paths))
@@ -65,12 +66,13 @@ class DAGMDataset(Dataset):
         target_transform=None,
         classes: list[int] | None = None,
         type: DAGM_dataset_type = "Original",
+        train: bool = True,
     ):
         self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
         self.img_dir = img_dir
         self.type = type
 
-        image_paths, label_paths = DAGMDataset.__get_images_and_labels_paths(img_dir, self.classes, type)
+        image_paths, label_paths = DAGMDataset.__get_images_and_labels_paths(img_dir, self.classes, type, train)
         self.image_paths: list[str] = image_paths
         self.label_paths: dict[str, str] = dict(
             [(dagm_get_label_key(label_path), label_path) for label_path in label_paths]

@@ -35,8 +35,9 @@ def dagm_get_patch_key(path: str) -> str:
 
 
 # Returns image path from class and image name (which consists of 4 digits, e.g. 0587, 1183)
-def dagm_get_image_path(dir: str, cls: int, image_name: str) -> str:
-    return os.path.join(dir, f"Class{cls}", "Train", f"{image_name}.PNG")
+def dagm_get_image_path(dir: str, cls: int, image_name: str, train: bool = True) -> str:
+    subset = "Train" if train else "Test"
+    return os.path.join(dir, f"Class{cls}", subset, f"{image_name}.PNG")
 
 
 # Returns patches directory path based on ppi and patch size

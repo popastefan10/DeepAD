@@ -29,6 +29,7 @@ def plot_images(
     figsize: tuple[int, int] = (5, 5),
     title: str | None = None,
     range: Literal["auto", "01", "255", "minmax"] = "auto",
+    cmap: str = 'gray',
     show: bool = True,
 ) -> None:
     """
@@ -36,7 +37,7 @@ def plot_images(
     Images must be in a grayscale (shape HxW) or RGB (shape HxWx3) format.
     """
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
-    axes = axes.flatten()
+    axes = axes.flatten() if rows > 1 or cols > 1 else [axes]
     for ax, image, img_title in zip(axes, images, titles):
         vmin, vmax = None, None
         if range == "auto":
@@ -50,7 +51,7 @@ def plot_images(
         else:
             raise ValueError(f"Invalid range: {range}")
 
-        ax.imshow(image, cmap="gray", vmin=vmin, vmax=vmax) if len(image.shape) == 2 else ax.imshow(image)
+        ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax) if len(image.shape) == 2 else ax.imshow(image)
         ax.set_title(img_title)
         ax.axis("off")
     if title:
