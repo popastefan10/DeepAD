@@ -4,6 +4,7 @@ raw_patch_size: 176 # Patches larger than 128 need to be cropped to avoid border
 patch_size: 128 # Patch size specified in the paper; keep in sync with loss_N
 ppi: 4 # Patches per image - Number of patches to extract from each image
 patches_iou_threshold: 0.05 # Maximum IOU between patches to consider them different
+patches_pad: true
 
 # PyTorch
 seed: 42

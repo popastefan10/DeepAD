@@ -41,5 +41,5 @@ def dagm_get_image_path(dir: str, cls: int, image_name: str, train: bool = True)
 
 
 # Returns patches directory path based on ppi and patch size
-def dagm_get_patches_dir(config: Config, ppi: int, patch_size: int) -> str:
-    return os.path.join(config.DAGM_processed_dir, f"{ppi}ppi_{patch_size}px")
+def dagm_get_patches_dir(config: Config, ppi: int, patch_size: int, pad: bool = False) -> str:
+    return os.path.join(config.DAGM_processed_dir, f"{ppi}ppi_{patch_size}px{'_pad' if pad else ''}")

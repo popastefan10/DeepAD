@@ -22,6 +22,7 @@ class Config:
         self.patch_size = 128  # Patch size specified in the paper; keep in sync with loss_N
         self.ppi = 4  # Patches per image - Number of patches to extract from each image
         self.patches_iou_threshold = 0.05  # Maximum IOU between patches to consider them different
+        self.patches_pad = True  # Whether or not the images were padded before cropping patches
 
         # PyTorch
         self.seed: int = 42
@@ -65,10 +66,12 @@ class Config:
         self.patch_size = yml_config.get("patch_size") or self.patch_size
         self.ppi = yml_config.get("ppi") or self.ppi
         self.patches_iou_threshold = yml_config.get("patches_iou_threshold") or self.patches_iou_threshold
+        self.patches_pad = yml_config.get("patches_pad") or self.patches_pad
 
         # PyTorch
         self.seed = yml_config.get("seed") or self.seed
         self.generator = Generator().manual_seed(self.seed)
+        self.device = yml_config.get("device") or self.device
 
         # Model
         self.batch_norm = yml_config.get("batch_norm") or self.batch_norm
@@ -76,7 +79,6 @@ class Config:
 
         # Training
         self.batch_size = yml_config.get("batch_size") or self.batch_size
-        self.device = yml_config.get("device") or self.device
         self.loss_type = yml_config.get("loss_type") or self.loss_type
         self.loss_Lambda = yml_config.get("loss_Lambda") or self.loss_Lambda
         self.loss_N = yml_config.get("loss_N") or self.loss_N
@@ -87,6 +89,12 @@ class Config:
         self.optim_adam_eps = yml_config.get("optim_adam_eps") or self.optim_adam_eps
         self.optim_adam_eps = eval(self.optim_adam_eps) if isinstance(self.optim_adam_eps, str) else self.optim_adam_eps
         self.train_epochs = yml_config.get("train_epochs") or self.train_epochs
+        self.train_classes = yml_config.get("train_classes") or self.train_classes
+
+        # Inference
+        self.center_size = yml_config.get("center_size") or self.center_size
+        self.content_size = yml_config.get("content_size") or self.content_size
+        self.stride = yml_config.get("stride") or self.stride
 
     def save(self, config_path: str) -> None:
         """
@@ -103,6 +111,7 @@ class Config:
             + f"\npatch_size: {self.patch_size}"
             + f"\nppi: {self.ppi}"
             + f"\npatches_iou_threshold: {self.patches_iou_threshold}"
+            + f"\npatches_pad: {self.patches_pad}"
             + "\n\nPyTorch:"
             + f"\nseed: {self.seed}"
             + f"\ndevice: {self.device}"

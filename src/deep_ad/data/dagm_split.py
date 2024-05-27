@@ -52,7 +52,7 @@ def dagm_patch_get_splits(
     """
     # First, get all the paths and classes
     classes = classes or list(range(1, 11))
-    patches_dir = dagm_get_patches_dir(config, ppi=config.ppi, patch_size=config.raw_patch_size)
+    patches_dir = dagm_get_patches_dir(config, ppi=config.ppi, patch_size=config.raw_patch_size, pad=config.patches_pad)
     patches_cls_paths = [glob.glob(os.path.join(patches_dir, f"Class{cls}\\Train\\*.png")) for cls in classes]
     patches_paths: list[str] = []
     classes: list[int] = []
