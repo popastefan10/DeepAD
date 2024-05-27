@@ -173,7 +173,7 @@ class Trainer:
             self.optimizer.step()
             epoch_loss += loss.item()
 
-            if should_plot and (epoch_num == 0 or (epoch_num + 1) % 20 == 0):
+            if should_plot:
                 p_images = [images[0], inputs[0], output[0]]
                 p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                 plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
@@ -214,7 +214,7 @@ class Trainer:
                 loss = self.loss_function(output, images)
                 epoch_loss += loss.item()
 
-                if should_plot and (epoch_num == 0 or (epoch_num + 1) % 20 == 0):
+                if should_plot:
                     p_images = [images[0], inputs[0], output[0]]
                     p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                     plot_images(images=p_images, titles=["Val Original", "Input", "Output"], cols=3, show=False)
@@ -227,7 +227,9 @@ class Trainer:
 
         return epoch_loss
 
-    def train(self, plot_train: bool = False, plot_val: bool = False) -> tuple[list[float], list[float]]:
+    def train(
+        self, plot_period: int = 10, plot_train: bool = False, plot_val: bool = False
+    ) -> tuple[list[float], list[float]]:
         """
         Starts the training process. If `pretrained_epoch` is not `None`, the training will continue from the next epoch,
         i.e. `pretrained_epoch + 1`.
@@ -244,8 +246,10 @@ class Trainer:
         best_val_loss = float("inf")
         for epoch_num in range(start_epoch, self.train_epochs):
             stopwatch.start()
-            train_loss = self.train_epoch(epoch_num, should_plot=plot_train)
-            val_loss = self.eval_epoch(epoch_num, should_plot=plot_val)
+            train_should_plot = plot_train and (epoch_num == 0 or (epoch_num + 1) % plot_period == 0)
+            train_loss = self.train_epoch(epoch_num, should_plot=train_should_plot)
+            val_should_plot = plot_val and (epoch_num == 0 or (epoch_num + 1) % plot_period == 0)
+            val_loss = self.eval_epoch(epoch_num, should_plot=val_should_plot)
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             print(

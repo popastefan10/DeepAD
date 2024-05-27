@@ -12,8 +12,7 @@ class Config:
         # Paths
         env = dotenv_values(env_path)
         self.root_dir = root_dir
-        self.datasets_dir = env["datasets_dir"]
-        self.DAGM_raw_dir = os.path.join(self.datasets_dir, "DAGM")
+        self.DAGM_raw_dir = env["dagm_dir"]
         self.DAGM_processed_dir = os.path.join(root_dir, "data", "processed", "DAGM")
 
         # Datasets
@@ -129,7 +128,6 @@ class Config:
         state = self.__dict__.copy()
         del (
             state["root_dir"],
-            state["datasets_dir"],
             state["DAGM_raw_dir"],
             state["DAGM_processed_dir"],
             state["generator"],

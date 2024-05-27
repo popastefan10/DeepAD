@@ -87,7 +87,7 @@ def main() -> None:
     )
 
     # Start training
-    train_losses, val_losses = trainer.train(plot_train=True, plot_val=False)
+    train_losses, val_losses = trainer.train(plot_period=ARGS.plot_period, plot_train=True, plot_val=False)
     plot_dir = f"{ARGS.root_dir}/save/plots/{run_name}"
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
@@ -133,6 +133,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-l", "--limit", dest="limit_batches", type=int, required=False, help="Limit the number of batches per epoch."
+    )
+    parser.add_argument(
+        "--plot-period",
+        dest="plot_period",
+        type=int,
+        required=True,
+        help="The fixed number of epochs after we repeatedly plot the outputs (e.g. plot once every 10 epochs).",
     )
     parser.add_argument("--save-epochs", dest="save_epochs", type=int, nargs="+", help="Epochs to save the model at.")
     parser.add_argument("--pretrained", dest="pretrained", type=str, help="Checkpoint id: <run_name>/<checkpoint_name>")
