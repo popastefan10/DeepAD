@@ -1,5 +1,5 @@
 # Datasets
-dagm_lengths: [0.8, 0.1, 0.1] # Train, Val, Test
+dagm_lengths: [0.8, 0.2] # Train, Val, Test
 raw_patch_size: 176 # Patches larger than 128 need to be cropped to avoid border effects when applying random transforms
 patch_size: 128 # Patch size specified in the paper; keep in sync with loss_N
 ppi: 4 # Patches per image - Number of patches to extract from each image

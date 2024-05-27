@@ -43,9 +43,9 @@ def dagm_patch_get_splits(
     train_transform: Transform | None = None,
     val_transform: Transform | None = None,
     classes: list[int] | None = None,
-) -> tuple[DAGMPatchDataset, DAGMPatchDataset, DAGMPatchDataset]:
+) -> tuple[DAGMPatchDataset, DAGMPatchDataset]:
     """
-    Splits the patches into train, val and test datasets. \\
+    Splits the patches into train and validation datasets. \\
     Uses `train_test_split` from `sklearn.model_selection` to split the patches. \\
     Train dataset will be obtained first, by splitting according to the first ratio from `config.dagm_lengths`. \\
     Then, the val and test datasets will be obtained by splitting the remaining paths according to the second ratio.
@@ -61,16 +61,9 @@ def dagm_patch_get_splits(
         classes += [cls + 1] * len(cls_paths)
 
     # Split the paths and classes
-    train_split, val_split, test_split = config.dagm_lengths
-    train_paths, test_paths, train_classes, test_classes = train_test_split(
+    train_split, _ = config.dagm_lengths
+    train_paths, val_paths, train_classes, val_classes = train_test_split(
         patches_paths, classes, test_size=1 - train_split, random_state=config.seed, stratify=classes
-    )
-    val_paths, test_paths, val_classes, test_classes = train_test_split(
-        test_paths,
-        test_classes,
-        test_size=val_split / (1 - train_split),
-        random_state=config.seed,
-        stratify=test_classes,
     )
 
     # Use transforms for training only
@@ -80,6 +73,5 @@ def dagm_patch_get_splits(
         transform=train_transform,
     )
     val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes, transform=val_transform)
-    test_dataset = DAGMPatchDataset(patch_paths=test_paths, patch_classes=test_classes, transform=val_transform)
 
-    return train_dataset, val_dataset, test_dataset
+    return train_dataset, val_dataset

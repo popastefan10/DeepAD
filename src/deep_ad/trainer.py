@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -178,6 +179,7 @@ class Trainer:
                 p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                 plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
                 self.save_manager.save_plot(run_name=self.run_name, plot_name=f"train_epoch_{epoch_num}.pdf")
+                plt.close()
 
             if batch_num == 0 or (batch_num + 1) % 10 == 0:
                 print(
@@ -219,6 +221,7 @@ class Trainer:
                     p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                     plot_images(images=p_images, titles=["Val Original", "Input", "Output"], cols=3, show=False)
                     self.save_manager.save_plot(run_name=self.run_name, plot_name=f"val_epoch_{epoch_num}.pdf")
+                    plt.close()
 
                 if self.limit_batches and batch_num + 1 >= self.limit_batches:
                     break

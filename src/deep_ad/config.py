@@ -16,7 +16,7 @@ class Config:
         self.DAGM_processed_dir = os.path.join(root_dir, "data", "processed", "DAGM")
 
         # Datasets
-        self.dagm_lengths = [0.8, 0.1, 0.1]  # Train, Val, Test
+        self.dagm_lengths = [0.8, 0.2]  # Train, Validation
         # Patches larger than 128 need to be cropped to avoid border effects when applying random transforms
         self.raw_patch_size = 176
         self.patch_size = 128  # Patch size specified in the paper; keep in sync with loss_N
