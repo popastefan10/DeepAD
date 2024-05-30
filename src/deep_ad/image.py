@@ -193,3 +193,19 @@ def create_center_mask(image_size: int = 128, center_size: int = 32) -> np.ndarr
     mask[offset : offset + center_size, offset : offset + center_size] = 1.0
 
     return mask
+
+# https://www.sergilehkyi.com/uk/2019/10/image-segmentation-with-python/
+def heatmap_overlay(
+    image: np.ndarray, mask: np.ndarray, alpha: float, colormap: int = cv.COLORMAP_CIVIDIS
+) -> np.ndarray:
+    """
+    Args:
+    * `image`: `(H, W, C)` image
+    * `mask`: `(H, W)` mask
+    * `alpha`: float in [0, 1] for the transparency of the mask
+    """
+    overlay = cv.applyColorMap((mask * 255).astype(np.uint8), colormap=colormap)
+    overlay[mask == 0] = [0, 0, 0]
+    overlay = cv.cvtColor(overlay, cv.COLOR_BGR2RGB)
+    overlay = cv.resize(overlay, (image.shape[1], image.shape[0]))
+    return cv.addWeighted(image, 1 - alpha, overlay, alpha, 0)

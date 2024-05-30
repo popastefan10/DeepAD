@@ -19,9 +19,11 @@ def load_pretrained(config: Config, save_manager: SaveManager, run_name: str, ch
     return model
 
 
-def pad_image(config: Config, image: torch.Tensor) -> tuple[torch.Tensor, int, int, int]:
+def pad_image(config: Config, image: torch.Tensor, patch_size: int | None = None) -> tuple[torch.Tensor, int, int, int]:
     """
-    `image`: a tensor with shape `[... x] C x H x W`
+    Args:
+    * `image`: a tensor with shape `[... x] C x H x W`
+    * `patch_size`: the size of the patch that will be extracted from the image. If not provided, `config.patch_size`
 
     Returns:
         * `padded_image`: a tensor with shape `[... x] C x (H + 2 * pad_size) x (W + 2 * pad_size)`
@@ -30,7 +32,7 @@ def pad_image(config: Config, image: torch.Tensor) -> tuple[torch.Tensor, int, i
         * `margin`: additional margin required for the rightmost patches
         * `pad_size`: total padding size (most probably equal to `min_pad + margin`)
     """
-    min_pad = (config.patch_size - config.content_size) // 2
+    min_pad = ((patch_size or config.patch_size) - config.content_size) // 2
     margin = (config.stride - ((image.shape[-1] - config.content_size) % config.stride)) % config.stride
     pad_size = min_pad + margin
     padded_image = pad(image, (pad_size, pad_size, pad_size, pad_size), mode="reflect").squeeze()
