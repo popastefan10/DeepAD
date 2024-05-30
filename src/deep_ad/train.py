@@ -82,6 +82,7 @@ def main() -> None:
         run_name=run_name,
         train_epochs=config.train_epochs,
         limit_batches=ARGS.limit_batches,
+        shuffle_data=ARGS.shuffle_data,
         save_epochs=ARGS.save_epochs,
         pretrained_dict=pretrained_dict,
     )
@@ -133,6 +134,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-l", "--limit", dest="limit_batches", type=int, required=False, help="Limit the number of batches per epoch."
+    )
+    parser.add_argument(
+        "--shuffle-data",
+        dest="shuffle_data",
+        type=bool,
+        required=True,
+        default=True,
+        help="Whether or not to shuffle the data during training.",
     )
     parser.add_argument(
         "--plot-period",

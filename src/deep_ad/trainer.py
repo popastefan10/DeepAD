@@ -75,6 +75,7 @@ class Trainer:
         run_name: str,
         train_epochs: int | None = None,
         limit_batches: int | None = None,
+        shuffle_data: bool = True,
         save_epochs: list[int] | None = None,
         pretrained_dict: PretrainedDict | None = None,
     ) -> None:
@@ -84,8 +85,8 @@ class Trainer:
         Args:
             * `run_name` - The name of the run. This will be used to save checkpoints and other data.
             * `limit_batches` - If this value is not `None`, this number of batches will be used for training and validation.
-            The batches will be extracted prior to iterating through the dataset, because otherwise the DataLoader will
-            shuffle the data and we won't use the same batches for training and validation.
+            If you want to use the exact same batches throughout training, then set `shuffle_data=False`.
+            * `shuffle_data` - Whether or not to shuffle the data.
             * `save_epochs` - A list of epochs at which the model should be saved.
             * `pretrained_epoch` - If this value is not `None`, the trainer will consider that the model has already been
             trained for this number of epochs. This is useful when resuming training from a checkpoint.
@@ -109,7 +110,8 @@ class Trainer:
 
         # If batches are limited, we need to create new DataLoaders that won't shuffle the data
         self.limit_batches = limit_batches
-        if limit_batches:
+        self.shuffle_data = shuffle_data
+        if not self.shuffle_data:
             self.train_dataloader = DataLoader(
                 train_dataloader.dataset,
                 batch_size=train_dataloader.batch_size,
