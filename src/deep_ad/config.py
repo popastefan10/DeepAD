@@ -45,10 +45,12 @@ class Config:
         self.train_epochs = 1
         self.train_classes = [10]
 
-        # Inference
+        # Detection
         self.center_size = 32  # Size of the center region that will be inpainted
         self.content_size = 24  # To avoid border effects, we will take the center of the inpainted region
         self.stride = 16  # Stride for the sliding window
+        self.hm_patch_size = 4  # The size of heatmap patches
+        self.hm_threshold = 0.55  # Threshold to be applied to heatmap patches
 
         # Save
         self.save_dir = os.path.join(root_dir, "save")
@@ -93,10 +95,12 @@ class Config:
         self.train_epochs = yml_config.get("train_epochs") or self.train_epochs
         self.train_classes = yml_config.get("train_classes") or self.train_classes
 
-        # Inference
+        # Detection
         self.center_size = yml_config.get("center_size") or self.center_size
         self.content_size = yml_config.get("content_size") or self.content_size
         self.stride = yml_config.get("stride") or self.stride
+        self.hm_patch_size = yml_config.get("hm_patch_size") or self.hm_patch_size
+        self.hm_threshold = yml_config.get("hm_threshold") or self.hm_threshold
 
     def save(self, config_path: str) -> None:
         """
@@ -131,6 +135,12 @@ class Config:
             + f"\noptim_adam_eps: {self.optim_adam_eps}"
             + f"\ntrain_epochs: {self.train_epochs}"
             + f"\ntrain_classes: {self.train_classes}"
+            + "\n\nDetection:"
+            + f"\ncenter_size: {self.center_size}"
+            + f"\ncontent_size: {self.content_size}"
+            + f"\nstride: {self.stride}"
+            + f"\nhm_patch_size: {self.hm_patch_size}"
+            + f"\nhm_threshold: {self.hm_threshold}"
         )
 
     def __repr__(self) -> str:

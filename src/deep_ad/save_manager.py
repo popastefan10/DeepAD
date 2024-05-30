@@ -20,6 +20,21 @@ class SaveManager:
     def _get_plots_dir(save_dir: str) -> str:
         return os.path.join(save_dir, "plots")
 
+    def get_checkpoint_path(self, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(self.checkpoints_dir, "checkpoints", run_name, f"{checkpoint_name}.pt")
+
+    @staticmethod
+    def get_checkpoint_path(config: Config, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), run_name, f"{checkpoint_name}.pt")
+
+    @staticmethod
+    def get_config_path(save_dir: str, run_name: str) -> str:
+        return os.path.join(SaveManager._get_checkpoints_dir(save_dir), run_name, "config.yml")
+
+    @staticmethod
+    def get_detections_dir(save_dir: str, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(save_dir, "detections", run_name, checkpoint_name)
+
     def save_checkpoint(
         self,
         model: nn.Module,
@@ -47,17 +62,6 @@ class SaveManager:
             save_path,
         )
         print(f"Checkpoint saved at '{save_path}'")
-
-    def get_checkpoint_path(self, run_name: str, checkpoint_name: str) -> str:
-        return os.path.join(self.checkpoints_dir, "checkpoints", run_name, f"{checkpoint_name}.pt")
-
-    @staticmethod
-    def get_checkpoint_path(config: Config, run_name: str, checkpoint_name: str) -> str:
-        return os.path.join(SaveManager._get_checkpoints_dir(config.save_dir), run_name, f"{checkpoint_name}.pt")
-
-    @staticmethod
-    def get_config_path(save_dir: str, run_name: str) -> str:
-        return os.path.join(SaveManager._get_checkpoints_dir(save_dir), run_name, "config.yml")
 
     @staticmethod
     def load_checkpoint(

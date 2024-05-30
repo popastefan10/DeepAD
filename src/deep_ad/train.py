@@ -139,7 +139,7 @@ if __name__ == "__main__":
         "--shuffle-data",
         dest="shuffle_data",
         type=bool,
-        required=True,
+        required=False,
         default=True,
         help="Whether or not to shuffle the data during training.",
     )
