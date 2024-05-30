@@ -5,6 +5,7 @@ patch_size: 128 # Patch size specified in the paper; keep in sync with loss_N
 ppi: 4 # Patches per image - Number of patches to extract from each image
 patches_iou_threshold: 0.05 # Maximum IOU between patches to consider them different
 patches_pad: true
+patches_dataset_name: v2
 
 # PyTorch
 seed: 42

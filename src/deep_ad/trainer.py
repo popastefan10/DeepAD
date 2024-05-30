@@ -178,7 +178,7 @@ class Trainer:
                 p_images = [images[0], inputs[0], output[0]]
                 p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                 plot_images(images=p_images, titles=["Train Original", "Input", "Output"], cols=3, show=False)
-                self.save_manager.save_plot(run_name=self.run_name, plot_name=f"train_epoch_{epoch_num}.pdf")
+                self.save_manager.save_plot(run_name=self.run_name, plot_name=f"train_epoch_{epoch_num + 1}.pdf")
                 plt.close()
 
             if batch_num == 0 or (batch_num + 1) % 10 == 0:
@@ -220,7 +220,7 @@ class Trainer:
                     p_images = [images[0], inputs[0], output[0]]
                     p_images = [im.cpu().detach().numpy().squeeze() for im in p_images]
                     plot_images(images=p_images, titles=["Val Original", "Input", "Output"], cols=3, show=False)
-                    self.save_manager.save_plot(run_name=self.run_name, plot_name=f"val_epoch_{epoch_num}.pdf")
+                    self.save_manager.save_plot(run_name=self.run_name, plot_name=f"val_epoch_{epoch_num + 1}.pdf")
                     plt.close()
 
                 if self.limit_batches and batch_num + 1 >= self.limit_batches:
@@ -246,7 +246,7 @@ class Trainer:
         start_epoch: int = 0 if self.pretrained_dict is None else self.pretrained_dict["epoch"] + 1
         if start_epoch > 0:
             print(f"Resuming training from epoch {start_epoch}.")
-        best_val_loss = float("inf")
+        best_val_loss = float("inf") if len(val_losses) == 0 else min(val_losses)
         for epoch_num in range(start_epoch, self.train_epochs):
             stopwatch.start()
             train_should_plot = plot_train and (epoch_num == 0 or (epoch_num + 1) % plot_period == 0)

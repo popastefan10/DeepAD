@@ -23,6 +23,7 @@ class Config:
         self.ppi = 4  # Patches per image - Number of patches to extract from each image
         self.patches_iou_threshold = 0.05  # Maximum IOU between patches to consider them different
         self.patches_pad = True  # Whether or not the images were padded before cropping patches
+        self.patches_dataset_name = "v2"  # Dataset name to use in the patches directory as a suffix
 
         # PyTorch
         self.seed: int = 42
@@ -66,7 +67,8 @@ class Config:
         self.patch_size = yml_config.get("patch_size") or self.patch_size
         self.ppi = yml_config.get("ppi") or self.ppi
         self.patches_iou_threshold = yml_config.get("patches_iou_threshold") or self.patches_iou_threshold
-        self.patches_pad = yml_config.get("patches_pad") or self.patches_pad
+        self.patches_pad = yml_config.get("patches_pad") or False
+        self.patches_dataset_name = yml_config.get("patches_dataset_name") or ""
 
         # PyTorch
         self.seed = yml_config.get("seed") or self.seed
@@ -112,6 +114,7 @@ class Config:
             + f"\nppi: {self.ppi}"
             + f"\npatches_iou_threshold: {self.patches_iou_threshold}"
             + f"\npatches_pad: {self.patches_pad}"
+            + f"\npatches_dataset_name: {self.patches_dataset_name}"
             + "\n\nPyTorch:"
             + f"\nseed: {self.seed}"
             + f"\ndevice: {self.device}"

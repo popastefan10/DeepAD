@@ -47,7 +47,7 @@ def main() -> None:
     # Load the data
     train_transform = create_training_transform(config)
     val_transform = create_validation_transform(config)
-    train_dataset, val_dataset, _ = dagm_patch_get_splits(
+    train_dataset, val_dataset = dagm_patch_get_splits(
         config, train_transform, val_transform, classes=config.train_classes
     )
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
