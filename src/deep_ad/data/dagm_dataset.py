@@ -28,13 +28,17 @@ class DAGMDataset(Dataset):
     @staticmethod
     def __get_images_and_labels_paths(
         img_dir: str, classes: list[int], type: DAGM_dataset_type, train: bool = True
-    ) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[str], list[str], list[str]]:
         image_paths: list[str] = []
         label_paths: list[str] = []
+        better_label_paths: list[str] = []
         for cls in classes:
             subset = "Train" if train else "Test"
             image_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", subset, "*.png")))
             label_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", subset, "Label", "*_label.png")))
+            better_label_paths.extend(
+                glob.glob(os.path.join(img_dir, f"Class{cls}", subset, "Label", "*_label_better.png"))
+            )
 
         if type == "Defect-free":
             # Remove images with labels
@@ -44,6 +48,7 @@ class DAGMDataset(Dataset):
             ]
             image_paths = list(set(image_paths) - set(label_images_paths))
             label_paths = []
+            better_label_paths = []
         elif type == "Defect-only":
             # Keep only images with labels
             label_images_paths: list[str] = [
@@ -56,8 +61,9 @@ class DAGMDataset(Dataset):
         sort_fn: Callable[[str], tuple[int, str]] = lambda path: (dagm_get_class(path), dagm_get_image_name(path))
         image_paths.sort(key=sort_fn)
         label_paths.sort(key=sort_fn)
+        better_label_paths.sort(key=sort_fn)
 
-        return image_paths, label_paths
+        return image_paths, label_paths, better_label_paths
 
     def __init__(
         self,
@@ -72,10 +78,15 @@ class DAGMDataset(Dataset):
         self.img_dir = img_dir
         self.type = type
 
-        image_paths, label_paths = DAGMDataset.__get_images_and_labels_paths(img_dir, self.classes, type, train)
+        image_paths, label_paths, better_label_paths = DAGMDataset.__get_images_and_labels_paths(
+            img_dir, self.classes, type, train
+        )
         self.image_paths: list[str] = image_paths
         self.label_paths: dict[str, str] = dict(
             [(dagm_get_label_key(label_path), label_path) for label_path in label_paths]
+        )
+        self.better_label_paths: dict[str, str] = dict(
+            [(dagm_get_label_key(label_path), label_path) for label_path in better_label_paths]
         )
 
         self.transform = transform
@@ -88,11 +99,12 @@ class DAGMDataset(Dataset):
         image_path = self.image_paths[idx]
         image = read_image(image_path).squeeze()
         label_key = dagm_get_image_key(image_path)
-        label = (
-            read_image(self.label_paths[label_key]).squeeze()
-            if label_key in self.label_paths
-            else torch.zeros(image.shape)
-        )
+        print(label_key)
+        print(self.better_label_paths)
+        # Choose the better label if possible
+        label_path = self.better_label_paths.get(label_key, None) or self.label_paths[label_key]
+        print(label_path)
+        label = read_image(label_path).squeeze() if label_key in self.label_paths else torch.zeros(image.shape)
         if self.transform:
             image = self.transform(image)
         if self.target_transform:

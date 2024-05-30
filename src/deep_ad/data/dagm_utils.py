@@ -16,7 +16,7 @@ def dagm_get_image_name(path: str) -> str:
 
 # Returns label name from path
 def dagm_get_label_name(path: str) -> str:
-    return os.path.splitext(os.path.basename(path))[0].strip("_label")
+    return os.path.splitext(os.path.basename(path))[0].split("_")[0]
 
 
 # Returns image key from path in format <class>_<image_name>
