@@ -19,9 +19,13 @@ def dagm_get_label_name(path: str) -> str:
     return os.path.splitext(os.path.basename(path))[0].split("_")[0]
 
 
+def dagm_build_key(image_class: str, image_name: str) -> str:
+    return image_class + "_" + image_name
+
+
 # Returns image key from path in format <class>_<image_name>
 def dagm_get_image_key(path: str) -> str:
-    return str(dagm_get_class(path)) + "_" + dagm_get_image_name(path)
+    return dagm_build_key(str(dagm_get_class(path)), dagm_get_image_name(path))
 
 
 # Returns label key from path in format <class>_<label_name>
