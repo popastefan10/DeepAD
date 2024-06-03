@@ -4,16 +4,16 @@ import os
 from torcheval.metrics.functional import binary_auprc
 
 from src.deep_ad.config import Config
-from src.deep_ad.data.dagm_dataset import DAGMDataset
+from src.deep_ad.data.dagm_dataset import DAGMDatasetDev
+from src.deep_ad.data.dagm_utils import dagm_build_key
 from src.deep_ad.eval import (
     compute_heatmap,
     load_pretrained,
     cut_margins,
     reconstruct_by_inpainting,
-    diff_postprocessing,
+    compute_diff,
     remove_islands,
 )
-from src.deep_ad.image import plot_images
 from src.deep_ad.measurements import Stopwatch
 from src.deep_ad.save_manager import SaveManager
 from src.deep_ad.transforms import create_test_transform
@@ -23,8 +23,8 @@ def main() -> None:
     # Load the pretrained configuration
     config = Config(root_dir=ARGS.root_dir, config_path=ARGS.config_path)
     save_manager = SaveManager(config)
-    pretrained_run_name, pretrained_checkpoint_name = ARGS.pretrained.split("/")
-    print(f"\n\nLoading model from run {pretrained_run_name}/{pretrained_checkpoint_name}.")
+    run_name, checkpoint_name = ARGS.pretrained.split("/")
+    print(f"\n\nLoading model from run {run_name}/{checkpoint_name}.")
 
     if ARGS.device:
         assert ARGS.device == "cpu" or ARGS.device == "cuda"
@@ -46,12 +46,10 @@ def main() -> None:
     print(f"\nRunning training with the following configuration:\n\n{config}")
 
     # Check if existing detections can be loaded
-    detections_dir = save_manager.get_detections_dir(
-        config.save_dir, run_name=pretrained_run_name, checkpoint_name=pretrained_checkpoint_name
-    )
-    if not os.path.exists(detections_dir):
-        os.makedirs(detections_dir)
-    print(f"\n\nDetections will be saved to '{detections_dir}'")
+    inpaintings_dir = save_manager.get_inpaintings_dir(run_name, checkpoint_name)
+    if not os.path.exists(inpaintings_dir):
+        os.makedirs(inpaintings_dir)
+    print(f"\n\Inpaintings will be saved to '{inpaintings_dir}'")
 
     if not ARGS.yes:
         proceed = input("\n\nProceed with detection? (y/n): ")
@@ -63,14 +61,12 @@ def main() -> None:
     # TODO load existing detections if found
 
     # Load pretrained model
-    model = load_pretrained(
-        config, save_manager, run_name=pretrained_run_name, checkpoint_name=pretrained_checkpoint_name
-    )
+    model = load_pretrained(config, save_manager, run_name, checkpoint_name)
     model = model.to(config.device)
 
     # Load the data
     test_transform = create_test_transform()
-    test_dataset = DAGMDataset(
+    test_dataset = DAGMDatasetDev(
         img_dir=config.DAGM_raw_dir,
         transform=test_transform,
         target_transform=test_transform,
@@ -82,14 +78,22 @@ def main() -> None:
     # Iterate through images
     stopwatch = Stopwatch()
     stopwatch.start()
-    for idx, (image, image_mask) in enumerate(test_dataset):
+    for idx, (image, image_mask, image_class, image_name) in enumerate(test_dataset):
         stopwatch.checkpoint()
         if idx >= limit_images:
             break
 
         image, image_mask = image.squeeze(), image_mask.squeeze()
-        inpainted_image = reconstruct_by_inpainting(config, image, model)
-        diff_image = diff_postprocessing(image - inpainted_image)
+
+        # Load previously inpainted image if possible
+        image_key = dagm_build_key(str(image_class), image_name)
+        inpainted_image = save_manager.try_load_inpainting(image_key, run_name, checkpoint_name)
+        if inpainted_image is None:
+            inpainted_image = reconstruct_by_inpainting(config, image, model)
+            save_manager.save_inpainting(inpainted_image, image_key, run_name, checkpoint_name)
+
+        # Postprocessing
+        diff_image = compute_diff(image, inpainted_image)
         diff_cut = cut_margins(diff_image.clone(), margin=1)
 
         # Break diff image into patches and compute a heatmap by applying a metric over each patch
@@ -100,7 +104,7 @@ def main() -> None:
         # Binarize heatmap and remove islands
         heatmap[heatmap < config.hm_threshold] = 0
         heatmap[heatmap >= config.hm_threshold] = 1
-        heatmap = remove_islands(heatmap, patch_size=config.hm_patch_size)
+        heatmap, _ = remove_islands(heatmap)
         diff_image = diff_image * heatmap
 
         # Compute final metrics

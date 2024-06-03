@@ -11,6 +11,7 @@ class SaveManager:
         self.save_dir = config.save_dir
         self.checkpoints_dir = self._get_checkpoints_dir(self.save_dir)
         self.plots_dir = self._get_plots_dir(self.save_dir)
+        self.inpaintings_dir = self._get_inpaintings_dir(self.save_dir)
 
     @staticmethod
     def _get_checkpoints_dir(save_dir: str) -> str:
@@ -32,8 +33,11 @@ class SaveManager:
         return os.path.join(SaveManager._get_checkpoints_dir(save_dir), run_name, "config.yml")
 
     @staticmethod
-    def get_detections_dir(save_dir: str, run_name: str, checkpoint_name: str) -> str:
-        return os.path.join(save_dir, "detections", run_name, checkpoint_name)
+    def _get_inpaintings_dir(save_dir: str) -> str:
+        return os.path.join(save_dir, "inpaintings")
+
+    def get_inpaintings_dir(self, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(self.inpaintings_dir, run_name, checkpoint_name)
 
     def save_checkpoint(
         self,
@@ -98,3 +102,21 @@ class SaveManager:
             os.makedirs(save_dir)
         save_path = os.path.join(save_dir, "config.yml")
         config.save(save_path)
+
+    def save_inpainting(
+        self, inpainted_image: torch.Tensor, image_key: str, run_name: str, checkpoint_name: str
+    ) -> None:
+        save_dir = self.get_inpaintings_dir(run_name, checkpoint_name)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_path = os.path.join(save_dir, f"{image_key}.pt")
+        torch.save(inpainted_image, save_path)
+
+    def try_load_inpainting(self, image_key: str, run_name: str, checkpoint_name: str) -> torch.Tensor | None:
+        """Image name should not contain any extensions"""
+        load_path = os.path.join(self.get_inpaintings_dir(run_name, checkpoint_name), f"{image_key}.pt")
+        inpainted_image = None
+        if os.path.exists(load_path):
+            inpainted_image = torch.load(load_path)
+
+        return inpainted_image

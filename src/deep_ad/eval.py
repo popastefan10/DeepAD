@@ -9,7 +9,8 @@ from src.deep_ad.config import Config
 from src.deep_ad.image import create_center_mask
 from src.deep_ad.model import DeepCNN
 from src.deep_ad.save_manager import SaveManager
-from src.deep_ad.trainer import create_optimizer, normalize_to_mean_std
+from src.deep_ad.trainer import create_optimizer
+from src.deep_ad.transforms import normalize_to_mean_std
 
 
 def load_pretrained(config: Config, save_manager: SaveManager, run_name: str, checkpoint_name: str) -> DeepCNN:
@@ -108,7 +109,7 @@ def reconstruct_by_inpainting(config: Config, image: torch.Tensor, model: DeepCN
     return inpainted_image
 
 
-def diff_postprocessing(diff_image: torch.Tensor) -> torch.Tensor:
+def compute_diff(image: torch.Tensor, inpainted_image: torch.Tensor, norm: bool = True) -> torch.Tensor:
     """
     Args:
     * `diff_image`: the difference between the original image and the inpainted image
@@ -116,7 +117,13 @@ def diff_postprocessing(diff_image: torch.Tensor) -> torch.Tensor:
     Processes the image such that the final pixels values will lie in the range `[0, 1]`. It also increases the gap
     between dark and bright pixels by moving brighter pixels closer `1` and darker pixels closer to `0`.
     """
-    weight = 1
+    if norm:
+        image_normed = normalize_to_mean_std(image.unsqueeze(0).unsqueeze(0), mean=0.5267019737681685, std=0.19957033073362934).squeeze()
+        inpainted_normed = normalize_to_mean_std(inpainted_image.unsqueeze(0).unsqueeze(0), mean=0.5267019737681685, std=0.19957033073362934).squeeze()
+        diff_image = image_normed - inpainted_normed
+    else:
+        diff_image = image - inpainted_image
+    weight = 10
     postproc = sigmoid(weight * ((diff_image - diff_image.min()) / (diff_image.max() - diff_image.min()) - 0.5))
     postproc = (postproc - postproc.min()) / (postproc.max() - postproc.min())
     postproc = 1 - postproc
@@ -153,10 +160,14 @@ def remove_islands(image: torch.Tensor) -> torch.Tensor:
     Breaks the binary image into islands of pixels adjacent on row or column and keeps only the largest islands of
     pixels. The idea is that reconstruction noise is likely to be found isolated in the image, thus making up the
     smaller islands.
+
+    Returns:
+    * `image`: binary image with islands removed
+    * `island_sizes`: sizes of remaining islands
     """
     labeled_image, num_features = scipy_label(image.cpu().numpy())
     if num_features == 0:
-        return image
+        return image, []
     sizes = np.bincount(labeled_image.flatten())
     sizes[0] = 0  # Discard background denoted by 0
     sorted_islands = np.argsort(sizes)
@@ -165,4 +176,4 @@ def remove_islands(image: torch.Tensor) -> torch.Tensor:
     mask = torch.zeros_like(image)
     for label in keep_labels:
         mask = torch.logical_or(mask, torch.asarray(labeled_image == label))
-    return image * mask
+    return image * mask, sizes[keep_labels]
