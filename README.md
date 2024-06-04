@@ -51,5 +51,5 @@ Paths are configured based on local absolute paths, so you will have to add the 
 
 ```py
 # In this directory you should have at least the raw DAGM dataset
-datasets_dir="C:\\path-to-datasets-directory"
+dagm_dir="C:\\path-to-datasets-directory"
 ```

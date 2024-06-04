@@ -60,7 +60,7 @@ def dagm_patch_get_splits(
         pad=config.patches_pad,
         name=config.patches_dataset_name,
     )
-    patches_cls_paths = [glob.glob(os.path.join(patches_dir, f"Class{cls}\\Train\\*.png")) for cls in classes]
+    patches_cls_paths = [glob.glob(os.path.join(patches_dir, f"Class{cls}", "Train", "*.png")) for cls in classes]
     patches_paths: list[str] = []
     classes: list[int] = []
     for cls, cls_paths in enumerate(patches_cls_paths):

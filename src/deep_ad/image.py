@@ -1,9 +1,15 @@
 from typing import Literal
 import matplotlib
 
-matplotlib.use("TkAgg")  # Faster rendering
+try:
+    matplotlib.use("TkAgg")  # Faster rendering
+except Exception:
+    print("Could not set matplotlib backend to 'TkAgg'!")
 
-from mpl_interactions import panhandler, zoom_factory
+try:
+    from mpl_interactions import panhandler, zoom_factory
+except ImportError:
+    print("Could not import mpl_interactions!")
 
 import cv2 as cv
 import matplotlib.pyplot as plt
