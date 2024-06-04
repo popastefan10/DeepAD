@@ -43,6 +43,7 @@ def dagm_patch_get_splits(
     train_transform: Transform | None = None,
     val_transform: Transform | None = None,
     classes: list[int] | None = None,
+    cache_patches: bool = False,
 ) -> tuple[DAGMPatchDataset, DAGMPatchDataset]:
     """
     Splits the patches into train and validation datasets. \\
@@ -77,7 +78,10 @@ def dagm_patch_get_splits(
         patch_paths=train_paths,
         patch_classes=train_classes,
         transform=train_transform,
+        cache_patches=cache_patches,
     )
-    val_dataset = DAGMPatchDataset(patch_paths=val_paths, patch_classes=val_classes, transform=val_transform)
+    val_dataset = DAGMPatchDataset(
+        patch_paths=val_paths, patch_classes=val_classes, transform=val_transform, cache_patches=cache_patches
+    )
 
     return train_dataset, val_dataset

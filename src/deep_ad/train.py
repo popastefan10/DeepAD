@@ -48,7 +48,7 @@ def main() -> None:
     train_transform = create_training_transform(config)
     val_transform = create_validation_transform(config)
     train_dataset, val_dataset = dagm_patch_get_splits(
-        config, train_transform, val_transform, classes=config.train_classes
+        config, train_transform, val_transform, classes=config.train_classes, cache_patches=ARGS.cache_patches
     )
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False)
@@ -136,13 +136,13 @@ if __name__ == "__main__":
         "-l", "--limit", dest="limit_batches", type=int, required=False, help="Limit the number of batches per epoch."
     )
     parser.add_argument(
-        "--shuffle-data",
+        "--no-shuffle",
         dest="shuffle_data",
-        type=bool,
+        action="store_false",
         required=False,
-        default=True,
         help="Whether or not to shuffle the data during training.",
     )
+    parser.set_defaults(shuffle_data=True)
     parser.add_argument(
         "--plot-period",
         dest="plot_period",
@@ -152,6 +152,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--save-epochs", dest="save_epochs", type=int, nargs="+", help="Epochs to save the model at.")
     parser.add_argument("--pretrained", dest="pretrained", type=str, help="Checkpoint id: <run_name>/<checkpoint_name>")
+    parser.add_argument(
+        "--cache-patches", dest="cache_patches", action="store_true", help="Cache patches for faster training."
+    )
+    parser.set_defaults(cache_patches=False)
 
     ARGS = parser.parse_args()
     main()

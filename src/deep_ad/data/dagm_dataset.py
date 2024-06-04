@@ -142,7 +142,7 @@ class DAGMPatchDataset:
         patch_paths: list[str] | None = None,
         patch_classes: list[int] | None = None,
         transform=None,
-        target_transform=None,
+        cache_patches: bool = False,
     ) -> None:
         """
         If you want to use the patches from the whole dataset (all classes), provide img_dir. \\
@@ -166,20 +166,23 @@ class DAGMPatchDataset:
             for cls in self.classes:
                 self.patch_paths.extend(glob.glob(os.path.join(img_dir, f"Class{cls}", "Train", "*.png")))
 
+        self.cache_patches: bool = cache_patches
+        self.patches_cache: dict[str, tuple[Image.Image, str]] = {}
         self.transform = transform
-        self.target_transform = target_transform
 
     def __len__(self) -> int:
         return len(self.patch_paths)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, str]:
         patch_path = self.patch_paths[idx]
-        image = Image.open(patch_path)
-        key = dagm_get_patch_key(patch_path)
-
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            key = self.target_transform(key)
+        if self.cache_patches and patch_path in self.patches_cache:
+            image, key = self.patches_cache[patch_path]
+        else:
+            image = Image.open(patch_path)
+            if self.transform:
+                image = self.transform(image)
+            key = dagm_get_patch_key(patch_path)
+            if self.cache_patches:
+                self.patches_cache[patch_path] = (image, key)
 
         return image, key
