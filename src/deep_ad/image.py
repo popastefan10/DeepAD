@@ -1,19 +1,23 @@
-from typing import Literal
 import matplotlib
+from src.deep_ad.config import is_running_on_runpod
 
 try:
-    matplotlib.use("TkAgg")  # Faster rendering
-except Exception:
-    print("Could not set matplotlib backend to 'TkAgg'!")
-
-try:
-    from mpl_interactions import panhandler, zoom_factory
+    backend = "Agg" if is_running_on_runpod() else "TkAgg"
+    matplotlib.use(backend)
 except ImportError:
-    print("Could not import mpl_interactions!")
+    print(f"Could not set matplotlib backend to '{backend}'!")
+
+if not is_running_on_runpod():
+    try:
+        from mpl_interactions import panhandler, zoom_factory
+    except ImportError:
+        print("Could not import mpl_interactions!")
 
 import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
+
+from typing import Literal
 
 
 # Type alias for bounding boxes in the format (x1, y1, x2, y2)

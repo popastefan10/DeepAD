@@ -47,9 +47,10 @@ conda env export --from-history | grep -v "^prefix" > environment.yml
 
 ### Environment file
 
-Paths are configured based on local absolute paths, so you will have to add the following in a `.env` file:
+The minimum required keys inside the `.env` are the following:
 
 ```py
+running_env=HOME
 # In this directory you should have at least the raw DAGM dataset
 dagm_dir="C:\\path-to-datasets-directory"
 ```

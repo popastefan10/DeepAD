@@ -7,11 +7,25 @@ from torch import Generator
 from typing import Literal
 
 
+def get_running_env(env_path: str | None = None) -> Literal["HOME", "RUNPOD"]:
+    env = dotenv_values(env_path)
+    return env["running_env"]
+
+
+def is_running_on_runpod(env_path: str | None = None) -> bool:
+    return get_running_env(env_path) == "RUNPOD"
+
+
+def is_running_on_home(env_path: str | None = None) -> bool:
+    return get_running_env(env_path) == "HOME"
+
+
 class Config:
     def __init__(self, root_dir: str = ".", env_path: str | None = None, config_path: str | None = None) -> None:
         # Paths
         env = dotenv_values(env_path)
         self.root_dir = root_dir
+        self.running_env = env["running_env"]
         self.DAGM_raw_dir = env["dagm_dir"]
         self.DAGM_processed_dir = os.path.join(root_dir, "data", "processed", "DAGM")
 
