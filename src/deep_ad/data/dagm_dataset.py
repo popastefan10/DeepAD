@@ -179,10 +179,10 @@ class DAGMPatchDataset:
             image, key = self.patches_cache[patch_path]
         else:
             image = Image.open(patch_path)
-            if self.transform:
-                image = self.transform(image)
             key = dagm_get_patch_key(patch_path)
             if self.cache_patches:
                 self.patches_cache[patch_path] = (image, key)
+        if self.transform:
+            image = self.transform(image)
 
         return image, key
