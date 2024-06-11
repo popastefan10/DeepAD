@@ -26,11 +26,11 @@ def main() -> None:
     if ARGS.epochs:
         config.train_epochs = ARGS.epochs
     if ARGS.train_classes:
-        if "-" in ARGS.train_classes:
-            start, end = ARGS.train_classes.split("-")
-            config.train_classes = list(range(int(start), int(end) + 1))
+        fst = ARGS.train_classes[0]
+        if len(ARGS.train_classes) == 1 and fst >= 100:
+            config.train_classes = list(range(int(fst // 100), int(fst % 100)))
         else:
-            config.train_classes = [int(ARGS.train_classes)]
+            config.train_classes = ARGS.train_classes
         assert all(1 <= c <= 10 for c in config.train_classes), "Classes must be between 1 and 10."
     print(f"\nRunning training with the following configuration:\n\n{config}")
 
@@ -128,9 +128,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train-classes",
         dest="train_classes",
-        type=str,
+        type=int,
+        nargs="+",
         required=True,
-        help="Which classes to train on. Can be passed as a single number, or as a range: <start>-<end (inclusive)>",
+        help="Which classes to train on. Pass a list of numbers, or 110 for all classes.",
     )
     parser.add_argument(
         "-l", "--limit", dest="limit_batches", type=int, required=False, help="Limit the number of batches per epoch."
