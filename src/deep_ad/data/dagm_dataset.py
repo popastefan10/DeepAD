@@ -100,7 +100,7 @@ class DAGMDataset(Dataset):
         image = read_image(image_path).squeeze()
         label_key = dagm_get_image_key(image_path)
         # Choose the better label if possible
-        label_path = self.better_label_paths.get(label_key, None) or self.label_paths[label_key]
+        label_path = self.better_label_paths.get(label_key, None) or self.label_paths.get(label_key, None)
         label = read_image(label_path).squeeze() if label_key in self.label_paths else torch.zeros(image.shape)
         if self.transform:
             image = self.transform(image)

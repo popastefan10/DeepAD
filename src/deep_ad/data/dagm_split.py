@@ -68,7 +68,7 @@ def dagm_patch_get_splits(
         classes += [cls + 1] * len(cls_paths)
 
     # Split the paths and classes
-    train_split, _ = config.dagm_lengths
+    train_split = config.dagm_lengths[0]
     train_paths, val_paths, train_classes, val_classes = train_test_split(
         patches_paths, classes, test_size=1 - train_split, random_state=config.seed, stratify=classes
     )
