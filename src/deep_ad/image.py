@@ -71,6 +71,24 @@ def plot_images(
         plt.show()
 
 
+def surround_defect(image: np.ndarray, label: np.ndarray) -> np.ndarray:
+    """
+    Args:
+    * `image`: `(H, W, C)` image
+    * `label`: `(H, W)` mask
+
+    Surrounds the defect in the image with a red boundary.
+    """
+    label_dilated = cv.dilate(label, np.ones((3, 3), np.uint8), iterations=1)
+    out_boundary = np.add(label_dilated, -label)
+
+    # create copy of image with out_boundary as red color
+    image_with_out_boundary = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
+    image_with_out_boundary[out_boundary > 0] = [255, 0, 0]
+
+    return image_with_out_boundary
+
+
 # https://mpl-interactions.readthedocs.io/en/stable/examples/zoom-factory.html
 # Plots three images side by side: the original image, the label, and the original image with the label boundary
 # The image and label must be RGB or gray
