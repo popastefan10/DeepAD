@@ -13,6 +13,8 @@ from src.deep_ad.eval import (
     reconstruct_by_inpainting,
     compute_diff,
     remove_islands,
+    compute_anomaly_heatmap_adaptive,
+    compute_anomaly_heatmap
 )
 from src.deep_ad.measurements import Stopwatch
 from src.deep_ad.save_manager import SaveManager
@@ -70,7 +72,7 @@ def main() -> None:
         img_dir=config.DAGM_raw_dir,
         transform=test_transform,
         target_transform=test_transform,
-        classes=[10],
+        classes=detection_classes,
         type="Defect-only",
         train=False,
     )
@@ -78,6 +80,9 @@ def main() -> None:
     # Iterate through images
     stopwatch = Stopwatch()
     stopwatch.start()
+    auprcs: dict[1, list[float]] = {}
+    for cls in detection_classes:
+        auprcs[cls] = []
     for idx, (image, image_mask, image_class, image_name) in enumerate(test_dataset):
         stopwatch.checkpoint()
         if idx >= limit_images:
@@ -92,26 +97,38 @@ def main() -> None:
             inpainted_image = reconstruct_by_inpainting(config, image, model)
             save_manager.save_inpainting(inpainted_image, image_key, run_name, checkpoint_name)
 
-        # Postprocessing
-        diff_image = compute_diff(image, inpainted_image)
-        diff_cut = cut_margins(diff_image.clone(), margin=1)
+        # # Postprocessing
+        # diff_image = compute_diff(image, inpainted_image)
+        # diff_cut = cut_margins(diff_image.clone(), margin=1)
 
-        # Break diff image into patches and compute a heatmap by applying a metric over each patch
-        patch_metric = lambda patch: patch.max()
-        hm_num_windows = (diff_image.shape[-1] - config.hm_patch_size) // config.hm_patch_size + 1
-        heatmap = compute_heatmap(diff_cut, config.hm_patch_size, hm_num_windows, patch_metric)
+        # # Break diff image into patches and compute a heatmap by applying a metric over each patch
+        # patch_metric = lambda patch: patch.max()
+        # hm_num_windows = (diff_image.shape[-1] - config.hm_patch_size) // config.hm_patch_size + 1
+        # heatmap = compute_heatmap(diff_cut, config.hm_patch_size, hm_num_windows, patch_metric)
 
-        # Binarize heatmap and remove islands
-        heatmap[heatmap < config.hm_threshold] = 0
-        heatmap[heatmap >= config.hm_threshold] = 1
-        heatmap, _ = remove_islands(heatmap)
-        diff_image = diff_image * heatmap
+        # # Binarize heatmap and remove islands
+        # heatmap[heatmap < config.hm_threshold] = 0
+        # heatmap[heatmap >= config.hm_threshold] = 1
+        # heatmap, _ = remove_islands(heatmap)
+        # diff_image = diff_image * heatmap
+
+        anomaly_heatmap, threshold, recommended_thresholds = compute_anomaly_heatmap_adaptive(config, image, inpainted_image)
 
         # Compute final metrics
-        auprc = binary_auprc(diff_image.reshape(-1), image_mask.reshape(-1))
+        # auprc = binary_auprc(diff_image.reshape(-1), image_mask.reshape(-1))
+        auprc = binary_auprc(anomaly_heatmap.reshape(-1), image_mask.reshape(-1))
+        auprcs[image_class].append(auprc)
+        mauprc = sum(auprcs[image_class]) / len(auprcs[image_class])
         print(
-            f"Image {idx + 1:3d}/{min(limit_images, len(test_dataset))}: AUPRC={auprc:.6f} time={stopwatch.elapsed_since_last_checkpoint():.3f}s"
+            f"Image {idx + 1:3d}/{min(limit_images, len(test_dataset))}: AUPRC={auprc:.6f}, mAUPRC={mauprc:.6f}, time={stopwatch.elapsed_since_last_checkpoint():.3f}s"
         )
+
+    # Print final results
+    print("\n\nDetection finished.")
+    for cls in detection_classes:
+        auprc = sum(auprcs[cls]) / len(auprcs[cls])
+        print(f"Class {cls}: mean AUPRC={auprc:.6f}")
+    print(f"\nTotal time: {stopwatch.elapsed_since_beginning():.3f}s")
 
 
 if __name__ == "__main__":

@@ -36,6 +36,10 @@ class SaveManager:
     def _get_inpaintings_dir(save_dir: str) -> str:
         return os.path.join(save_dir, "inpaintings")
 
+    @staticmethod
+    def get_detections_dir(save_dir: str, run_name: str, checkpoint_name: str) -> str:
+        return os.path.join(save_dir, "detections", run_name, checkpoint_name)
+
     def get_inpaintings_dir(self, run_name: str, checkpoint_name: str) -> str:
         return os.path.join(self.inpaintings_dir, run_name, checkpoint_name)
 
@@ -120,3 +124,11 @@ class SaveManager:
             inpainted_image = torch.load(load_path)
 
         return inpainted_image
+
+    def save_detections(self, detections: list[torch.Tensor], run_name: str, checkpoint_name: str) -> None:
+        save_dir = self.get_detections_dir(run_name, checkpoint_name)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        detections = torch.cat(detections, dim=0)
+        save_path = os.path.join(save_dir, "detections.pt")
+        torch.save(detections, save_path)

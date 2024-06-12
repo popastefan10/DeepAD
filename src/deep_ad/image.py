@@ -1,4 +1,6 @@
 import matplotlib
+import torch
+
 from src.deep_ad.config import is_running_on_runpod
 
 try:
@@ -39,7 +41,7 @@ def plot_images(
     figsize: tuple[int, int] = (5, 5),
     title: str | None = None,
     range: Literal["auto", "01", "255", "minmax"] = "auto",
-    cmap: str = 'gray',
+    cmap: str = "gray",
     show: bool = True,
 ) -> None:
     """
@@ -69,6 +71,25 @@ def plot_images(
     plt.tight_layout()
     if show:
         plt.show()
+
+
+def plot_image_pixels(
+    images: list[torch.Tensor], labels: list[str], figsize: tuple[int, int] = (5, 5), plot_unique: bool = False
+):
+    plt.figure(figsize=figsize)
+    # Plot pixel values for each heatmap
+    if plot_unique:
+        plt.subplot(1, 2, 1)
+        for image, label in zip(images, labels):
+            plt.plot(torch.unique(image), label=label)
+        plt.legend()
+        plt.subplot(1, 2, 2)
+    # Plot histogram of pixel values for each heatmap
+    for image, label in zip(images, labels):
+        plt.hist(image.flatten(), bins=100, alpha=0.5, label=label)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
 def surround_defect(image: np.ndarray, label: np.ndarray) -> np.ndarray:
@@ -221,6 +242,7 @@ def create_center_mask(image_size: int = 128, center_size: int = 32) -> np.ndarr
     mask[offset : offset + center_size, offset : offset + center_size] = 1.0
 
     return mask
+
 
 # https://www.sergilehkyi.com/uk/2019/10/image-segmentation-with-python/
 def heatmap_overlay(
