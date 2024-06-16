@@ -67,7 +67,7 @@ def plot_images(
         ax.set_title(img_title)
         ax.axis("off")
     if title:
-        plt.suptitle(title)
+        plt.suptitle(title, fontsize=14)
     plt.tight_layout()
     if show:
         plt.show()
@@ -92,7 +92,7 @@ def plot_image_pixels(
     plt.show()
 
 
-def surround_defect(image: np.ndarray, label: np.ndarray) -> np.ndarray:
+def surround_defect(image: np.ndarray, label: np.ndarray, thickness: int = 1) -> np.ndarray:
     """
     Args:
     * `image`: `(H, W, C)` image
@@ -100,7 +100,8 @@ def surround_defect(image: np.ndarray, label: np.ndarray) -> np.ndarray:
 
     Surrounds the defect in the image with a red boundary.
     """
-    label_dilated = cv.dilate(label, np.ones((3, 3), np.uint8), iterations=1)
+    ksize = 2 * thickness + 1
+    label_dilated = cv.dilate(label, np.ones((ksize, ksize), np.uint8), iterations=1)
     out_boundary = np.add(label_dilated, -label)
 
     # create copy of image with out_boundary as red color
@@ -194,15 +195,15 @@ def plot_losses(
     Plots the training and validation losses over epochs.
     """
     plt.figure()
-    plt.plot(train_losses, label="Train loss")
-    plt.plot(val_losses, label="Val loss")
-    plt.xlabel("Epoch")
+    plt.plot(train_losses, label="Loss de antrenare")
+    plt.plot(val_losses, label="Loss de validare")
+    plt.xlabel("Epocă")
     plt.ylabel("Loss")
     plt.title(title)
     plt.legend()
     plt.tight_layout()
     if save_path:
-        plt.savefig(save_path, dpi=1000)
+        plt.savefig(save_path, bbox_inches="tight")
     if show_plot:
         plt.show()
 

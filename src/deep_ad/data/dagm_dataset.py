@@ -73,10 +73,12 @@ class DAGMDataset(Dataset):
         classes: list[int] | None = None,
         type: DAGM_dataset_type = "Original",
         train: bool = True,
+        use_better_labels: bool = True,
     ):
         self.classes: list[int] = DAGMDataset.all_classes if not classes else [*classes]
         self.img_dir = img_dir
         self.type = type
+        self.use_better_labels = use_better_labels
 
         image_paths, label_paths, better_label_paths = DAGMDataset.__get_images_and_labels_paths(
             img_dir, self.classes, type, train
@@ -100,7 +102,8 @@ class DAGMDataset(Dataset):
         image = read_image(image_path).squeeze()
         label_key = dagm_get_image_key(image_path)
         # Choose the better label if possible
-        label_path = self.better_label_paths.get(label_key, None) or self.label_paths.get(label_key, None)
+        label_path = self.better_label_paths.get(label_key, None) if self.use_better_labels else None
+        label_path = self.label_paths.get(label_key, None) if label_path is None else label_path
         label = read_image(label_path).squeeze() if label_key in self.label_paths else torch.zeros(image.shape)
         if self.transform:
             image = self.transform(image)

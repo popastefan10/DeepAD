@@ -3,11 +3,12 @@ import torch
 
 from scipy.ndimage import label as scipy_label
 from torch.nn.functional import pad, sigmoid
-from torcheval.metrics.functional import binary_auprc
+from torcheval.metrics.functional import binary_auprc, binary_auroc
 from typing import Callable
 
 from src.deep_ad.config import Config
 from src.deep_ad.image import create_center_mask
+from src.deep_ad.measurements import Stopwatch
 from src.deep_ad.model import DeepCNN
 from src.deep_ad.save_manager import SaveManager
 from src.deep_ad.trainer import create_optimizer
@@ -131,19 +132,9 @@ def compute_diff(image: torch.Tensor, inpainted_image: torch.Tensor) -> torch.Te
     diff_01 = (diff_image - diff_image.min()) / (diff_image.max() - diff_image.min())
     weight = 1
     wdiff = weight * diff_01
-    postproc = sigmoid(wdiff)
+    postproc = sigmoid(wdiff) # TODO subtract 0.5
+    # postproc = (postproc - postproc.min()) / (postproc.max() - postproc.min())
     diff_image = postproc
-
-    # wdiff = weight * (diff_01 - diff_01.median())
-    # wdiff = weight * (diff_01 - diff_01.mean())
-    # wdiff = weight * (diff_01 - 0.4)
-    # wdiff = weight * diff_01
-    # postproc = sigmoid(wdiff)
-    # postproc = torch.exp(wdiff)
-    # postproc = wdiff
-    # postproc = (postproc - postproc.min()) / (postproc.max() - postproc.min())
-    # postproc = 1 - postproc
-    # postproc = (postproc - postproc.min()) / (postproc.max() - postproc.min())
 
     return postproc
 
@@ -173,6 +164,25 @@ def binarize_heatmap(heatmap: torch.Tensor, threshold: float) -> torch.Tensor:
     hmc[hmc < threshold] = 0
     hmc[hmc >= threshold] = 1
     return hmc
+
+
+def keep_first_consecutive_true_block(arr: np.ndarray) -> np.ndarray:
+    """
+    Args:
+    * `arr`: a boolean or binary array
+
+    Returns:
+    * `res`: an array with the same shape as `arr` where all the blocks of consecutive `True` values after the first
+    one are set to `False`.
+    """
+    true_indices = np.where(arr)[0]
+    res = arr.copy()
+    if len(true_indices) > 0:
+        diff = np.diff(true_indices)
+        end_of_first_block = np.where(diff > 1)[0]
+        end_of_first_block = end_of_first_block[0] + 1 if len(end_of_first_block) > 0 else len(true_indices)
+        res[true_indices[end_of_first_block:]] = False
+    return res
 
 
 def remove_islands(heatmap: torch.Tensor, heatmap_bin: torch.Tensor) -> tuple[torch.Tensor, list[int]]:
@@ -235,12 +245,12 @@ def compute_anomaly_heatmap(
     Returns:
     * `heatmap`: a tensor with shape `H x W` representing the anomaly heatmap. This should be ready for calculating the AUPRC directly on it
     """
-    diff_image = compute_diff(image, inpainted_image, norm=True)
+    diff_image = compute_diff(image, inpainted_image)
 
     # Compute the initial heatmap
     patch_surface = config.hm_patch_size**2
     hm_num_windows = (diff_image.shape[-1] - config.hm_patch_size) // config.hm_patch_size + 1
-    diff_cut = cut_margins(diff_image.clone(), margin=2)
+    diff_cut = cut_margins(diff_image.clone(), margin=24)
     patch_metric = lambda patch: patch.max()
     heatmap = compute_heatmap(diff_cut, config.hm_patch_size, hm_num_windows, patch_metric)
 
@@ -269,7 +279,7 @@ def compute_anomaly_heatmap_adaptive(
     # Compute the initial heatmap
     patch_surface = config.hm_patch_size**2
     hm_num_windows = (diff_image.shape[-1] - config.hm_patch_size) // config.hm_patch_size + 1
-    diff_cut = cut_margins(diff_image.clone(), margin=2)
+    diff_cut = cut_margins(diff_image.clone(), margin=24)
     patch_metric = lambda patch: patch.max()
     heatmap = compute_heatmap(diff_cut, config.hm_patch_size, hm_num_windows, patch_metric)
 
@@ -299,19 +309,58 @@ def compute_anomaly_heatmap_adaptive(
     thresholds = np.array(thresholds)
 
     # Remove threholds that have max island greater than 50% of the image
-    keep_thresholds = max_sizes / patch_surface / 4096 < 0.5
+    keep_thresholds = max_sizes / patch_surface / 4096 < 0.3
     # Remove thresholds that don't have islands
     keep_thresholds = np.logical_and(keep_thresholds, max_sizes > 0)
     # Remove thresholds that have a high difference in the max size
-    keep_thresholds[:-1] = np.logical_and(keep_thresholds[:-1], diff_over_max < 0.5)
-    # Now, recommend the first threshold
-    recommended_threshold = thresholds[keep_thresholds][0]
-    recommended_size = max_sizes[keep_thresholds][0]
-    # But, keep all the thresholds which have the max size at least half of the size corresponding to the recommended threshold
-    keep_thresholds = np.logical_and(keep_thresholds, max_sizes >= recommended_size * 0.5)
+    # keep_thresholds[:-1] = np.logical_and(keep_thresholds[:-1], diff_over_max < 0.5)
+    # Remove the first consecutive thresholds that have a high difference in the max size
+    keep_thresholds[:-1] = np.logical_and(keep_thresholds[:-1], np.logical_not(keep_first_consecutive_true_block(diff_over_max >= 0.5)))
+    # Keep all the thresholds which have the max size at least half of the size corresponding to the first recommended threshold
+    keep_thresholds = np.logical_and(keep_thresholds, max_sizes >= max_sizes[keep_thresholds][0] * 0.5)
     recommended_thresholds = thresholds[keep_thresholds]
+    # Now, recommend the first threshold
+    recommended_threshold = recommended_thresholds[0] if keep_thresholds.sum() == 1 else recommended_thresholds[1]
 
     hmb = binarize_heatmap(heatmap, threshold=recommended_threshold)
     hmr, sizes, max_values, min_values, mean_values = remove_islands(heatmap_bin=hmb, heatmap=heatmap)
 
     return diff_image * hmr, recommended_threshold, recommended_thresholds
+
+
+def compute_auprc(anomaly_heatmaps: torch.Tensor, image_masks: torch.Tensor) -> tuple[float, list[float]]:
+    """
+    Args:
+    * `anomaly_heatmaps`: a tensor with shape `N x H x W`
+    * `image_masks`: a tensor with shape `N x H x W`
+
+    Returns:
+    * `auprc`: the area under the precision-recall curve
+    * `auprcs`: a list with the AUPRC for each image
+    """
+    auprcs = []
+    for anomaly_heatmap, image_mask in zip(anomaly_heatmaps, image_masks):
+        auprc = binary_auprc(anomaly_heatmap.reshape(-1), image_mask.reshape(-1))
+        auprcs.append(auprc)
+    auprc = binary_auprc(anomaly_heatmaps.reshape(-1), image_masks.reshape(-1))
+
+    return auprc, auprcs
+
+
+def compute_auroc(anomaly_heatmaps: torch.Tensor, image_masks: torch.Tensor) -> tuple[float, list[float]]:
+    """
+    Args:
+    * `anomaly_heatmaps`: a tensor with shape `N x H x W`
+    * `image_masks`: a tensor with shape `N x H x W`
+
+    Returns:
+    * `auroc`: the area under the ROC curve
+    * `aurocs`: a list with the AUROC for each image
+    """
+    aurocs = []
+    for anomaly_heatmap, image_mask in zip(anomaly_heatmaps, image_masks):
+        auroc = binary_auroc(anomaly_heatmap.reshape(-1), image_mask.reshape(-1))
+        aurocs.append(auroc)
+    auroc = binary_auroc(anomaly_heatmaps.reshape(-1), image_masks.reshape(-1))
+
+    return auroc, aurocs

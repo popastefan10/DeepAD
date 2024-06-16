@@ -1,7 +1,8 @@
 import argparse
 import os
+import torch
 
-from torcheval.metrics.functional import binary_auprc
+from torcheval.metrics.functional import binary_auprc, binary_auroc
 
 from src.deep_ad.config import Config
 from src.deep_ad.data.dagm_dataset import DAGMDatasetDev
@@ -14,7 +15,7 @@ from src.deep_ad.eval import (
     compute_diff,
     remove_islands,
     compute_anomaly_heatmap_adaptive,
-    compute_anomaly_heatmap
+    compute_anomaly_heatmap,
 )
 from src.deep_ad.measurements import Stopwatch
 from src.deep_ad.save_manager import SaveManager
@@ -44,6 +45,9 @@ def main() -> None:
     limit_images = float("inf")
     if ARGS.limit_images:
         limit_images = ARGS.limit_images
+
+    if ARGS.hm_patch_size:
+        config.hm_patch_size = ARGS.hm_patch_size
 
     print(f"\nRunning training with the following configuration:\n\n{config}")
 
@@ -80,15 +84,25 @@ def main() -> None:
     # Iterate through images
     stopwatch = Stopwatch()
     stopwatch.start()
-    auprcs: dict[1, list[float]] = {}
+    auprcs: dict[int, list[float]] = {}
     for cls in detection_classes:
         auprcs[cls] = []
+    aurocs: dict[int, list[float]] = {}
+    for cls in detection_classes:
+        aurocs[cls] = []
+    anomaly_heatmaps: dict[int, list[torch.Tensor]] = {}
+    for cls in detection_classes:
+        anomaly_heatmaps[cls] = []
+    image_masks: dict[int, list[torch.Tensor]] = {}
+    for cls in detection_classes:
+        image_masks[cls] = []
     for idx, (image, image_mask, image_class, image_name) in enumerate(test_dataset):
         stopwatch.checkpoint()
         if idx >= limit_images:
             break
 
         image, image_mask = image.squeeze(), image_mask.squeeze()
+        image_masks[image_class].append(image_mask)
 
         # Load previously inpainted image if possible
         image_key = dagm_build_key(str(image_class), image_name)
@@ -112,23 +126,57 @@ def main() -> None:
         # heatmap, _ = remove_islands(heatmap)
         # diff_image = diff_image * heatmap
 
-        anomaly_heatmap, threshold, recommended_thresholds = compute_anomaly_heatmap_adaptive(config, image, inpainted_image)
+        anomaly_heatmap, threshold, recommended_thresholds = compute_anomaly_heatmap_adaptive(
+            config, image, inpainted_image
+        )
 
-        # Compute final metrics
-        # auprc = binary_auprc(diff_image.reshape(-1), image_mask.reshape(-1))
+        # Anomaly heatmaps
+        anomaly_heatmaps[image_class].append(anomaly_heatmap)
+        # AUPRC
         auprc = binary_auprc(anomaly_heatmap.reshape(-1), image_mask.reshape(-1))
         auprcs[image_class].append(auprc)
         mauprc = sum(auprcs[image_class]) / len(auprcs[image_class])
+        total_auprc = binary_auprc(
+            torch.cat(anomaly_heatmaps[cls], dim=0).reshape(-1), torch.cat(image_masks[cls], dim=0).reshape(-1)
+        )
+        # AUROC
+        mauroc = binary_auroc(anomaly_heatmap.reshape(-1), image_mask.reshape(-1))
+        aurocs[image_class].append(mauroc)
+        mauroc = sum(aurocs[image_class]) / len(aurocs[image_class])
+        total_auroc = binary_auroc(
+            torch.cat(anomaly_heatmaps[cls], dim=0).reshape(-1), torch.cat(image_masks[cls], dim=0).reshape(-1)
+        )
         print(
-            f"Image {idx + 1:3d}/{min(limit_images, len(test_dataset))}: AUPRC={auprc:.6f}, mAUPRC={mauprc:.6f}, time={stopwatch.elapsed_since_last_checkpoint():.3f}s"
+            f"Image {idx + 1:3d}/{min(limit_images, len(test_dataset))}: AUPRC={auprc:.6f}, mAUPRC={mauprc:.6f}, tAUPRC={total_auprc:.6f}, AUROC={mauroc:.6f}, mAUROC={mauroc:.6f}, tAUROC={total_auroc:.6f}, time={stopwatch.elapsed_since_last_checkpoint():.3f}s"
         )
 
     # Print final results
     print("\n\nDetection finished.")
     for cls in detection_classes:
-        auprc = sum(auprcs[cls]) / len(auprcs[cls])
-        print(f"Class {cls}: mean AUPRC={auprc:.6f}")
+        mauprc = sum(auprcs[cls]) / len(auprcs[cls])
+        total_auprc = binary_auprc(
+            torch.cat(anomaly_heatmaps[cls], dim=0).reshape(-1), torch.cat(image_masks[cls], dim=0).reshape(-1)
+        )
+        mauroc = sum(aurocs[cls]) / len(aurocs[cls])
+        total_auroc = binary_auroc(
+            torch.cat(anomaly_heatmaps[cls], dim=0).reshape(-1), torch.cat(image_masks[cls], dim=0).reshape(-1)
+        )
+        print(
+            f"Class {cls}: mean AUPRC={mauprc:.6f}, mean AUROC={mauroc:.6f}, total AUPRC={total_auprc:.6f}, total AUROC={total_auroc:.6f}"
+        )
     print(f"\nTotal time: {stopwatch.elapsed_since_beginning():.3f}s")
+
+    # Save results
+    save_manager.save_detection_results(
+        run_name,
+        checkpoint_name,
+        ARGS.detection_name,
+        detection_classes,
+        auprcs,
+        aurocs,
+        anomaly_heatmaps,
+        limit_images,
+    )
 
 
 if __name__ == "__main__":
@@ -149,10 +197,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pretrained", dest="pretrained", type=str, required=True, help="Checkpoint id: <run_name>/<checkpoint_name>"
     )
+    parser.add_argument(
+        "--name",
+        "-n",
+        dest="detection_name",
+        type=str,
+        required=True,
+        help="Name of the detection run. Used for saving results.",
+    )
     parser.add_argument("-y", "--yes", dest="yes", action="store_true", help="Proceed without confirmation.")
 
     # Prediction arguments
     parser.add_argument("--device", dest="device", type=str, required=True, help="Either cpu or cuda.")
+    parser.add_argument(
+        "--hm-patch-size", dest="hm_patch_size", type=int, required=False, help="Size of heatmap patches."
+    )
     parser.add_argument(
         "--detection-classes",
         dest="detection_classes",

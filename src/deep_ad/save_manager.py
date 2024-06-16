@@ -40,6 +40,10 @@ class SaveManager:
     def get_detections_dir(save_dir: str, run_name: str, checkpoint_name: str) -> str:
         return os.path.join(save_dir, "detections", run_name, checkpoint_name)
 
+    @staticmethod
+    def get_masks_dir(save_dir: str) -> str:
+        return os.path.join(save_dir, "masks")
+
     def get_inpaintings_dir(self, run_name: str, checkpoint_name: str) -> str:
         return os.path.join(self.inpaintings_dir, run_name, checkpoint_name)
 
@@ -125,10 +129,62 @@ class SaveManager:
 
         return inpainted_image
 
-    def save_detections(self, detections: list[torch.Tensor], run_name: str, checkpoint_name: str) -> None:
-        save_dir = self.get_detections_dir(run_name, checkpoint_name)
+    def save_detection_results(
+        self,
+        run_name: str,
+        checkpoint_name: str,
+        detection_name: str,
+        detection_classes: list[int],
+        auprcs: dict[int, list[float]],
+        aurocs: dict[int, list[float]],
+        anomaly_heatmaps: list[torch.Tensor],
+        limit_images: int,
+    ) -> None:
+        save_dir = self.get_detections_dir(self.save_dir, run_name, checkpoint_name)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        detections = torch.cat(detections, dim=0)
-        save_path = os.path.join(save_dir, "detections.pt")
-        torch.save(detections, save_path)
+        for detection_class in detection_classes:
+            save_path = os.path.join(save_dir, f"{detection_name}_lim_{limit_images}_cls_{detection_class}.pt")
+            torch.save(
+                {
+                    "auprcs": torch.tensor(auprcs[detection_class]),
+                    "aurocs": torch.tensor(aurocs[detection_class]),
+                    "anomaly_heatmaps": torch.stack(anomaly_heatmaps[detection_class], dim=0),
+                },
+                save_path,
+            )
+            print(f"Detection results for class {detection_class} saved at '{save_path}'")
+
+    def try_load_detection_results(
+        self, run_name: str, checkpoint_name: str, detection_name: str, detection_class: int, limit_images: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
+        load_path = os.path.join(
+            self.get_detections_dir(self.save_dir, run_name, checkpoint_name),
+            f"{detection_name}_lim_{limit_images}_cls_{detection_class}.pt",
+        )
+        if os.path.exists(load_path):
+            detection_results = torch.load(load_path)
+            auprcs = detection_results["auprcs"]
+            aurocs = detection_results["aurocs"]
+            anomaly_heatmaps = detection_results["anomaly_heatmaps"]
+
+            return auprcs, aurocs, anomaly_heatmaps
+        return None
+
+    
+    def save_image_masks(self, image_class: int, image_masks: list[torch.Tensor]) -> None:
+        save_dir = self.get_masks_dir(self.save_dir)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_path = os.path.join(save_dir, f"class_{image_class}.pt")
+        torch.save(torch.stack(image_masks), save_path)
+        print(f"Masks saved at '{save_path}'.")
+
+
+    def load_masks(self, image_class: int) -> torch.Tensor | None:
+        load_path = os.path.join(self.get_masks_dir(self.save_dir), f"class_{image_class}.pt")
+        if os.path.exists(load_path):
+            masks = torch.load(load_path)
+            return masks
+        print(f"No masks found at '{load_path}'.")
+        return None
